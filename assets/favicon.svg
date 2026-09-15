@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title>Timeless</title>
+  <rect width="32" height="32" rx="7" fill="#080b0a"/>
+  <path d="M16 3.5 20.4 11l7.6 5-7.6 5L16 28.5 11.6 21 4 16l7.6-5L16 3.5Z" fill="none" stroke="#39c5bb" stroke-width="1.5"/>
+  <path d="M16 7v18M7 16h18M9.6 10.8l12.8 10.4M22.4 10.8 9.6 21.2" fill="none" stroke="#39c5bb" stroke-width="1" stroke-linecap="round" opacity=".9"/>
+  <circle cx="16" cy="16" r="1.6" fill="#d7fff7"/>
+</svg>

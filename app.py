@@ -20,6 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent
 INDEX_PATH = BASE_DIR / "index.html"
 STYLES_PATH = BASE_DIR / "styles.css"
 ASSETS_DIR = BASE_DIR / "assets"
+FAVICON_PATH = ASSETS_DIR / "favicon.svg"
+BRAND_MARK = '<span class="brand-mark" aria-hidden="true"></span>'
+FAVICON_LINK = '<link rel="icon" href="/assets/favicon.svg?v=1" type="image/svg+xml">'
 DB_PATH = Path(os.environ.get("TIMELESS_DB", str(BASE_DIR / "timeless.db")))
 HOST = os.environ.get("TIMELESS_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8000"))
@@ -454,8 +457,8 @@ def public_article(post: sqlite3.Row) -> str:
     title = escape(post["title"])
     date = display_date(post["published_at"] or post["updated_at"])
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=14"></head>
-<body><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/"><span class="brand-mark">TI</span><span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p><div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main></body></html>"""
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=15"></head>
+<body><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p><div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main></body></html>"""
 
 
 def admin_css() -> str:
@@ -467,13 +470,13 @@ def admin_css() -> str:
 
 
 def admin_layout(content: str, title: str = "后台") -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=14">{admin_css()}</head><body>{content}</body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=15">{admin_css()}</head><body>{content}</body></html>"""
 
 
 def login_page(error: str = "") -> str:
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
     return admin_layout(
-        f"""<main class="login-shell"><a class="brand" href="/"><span class="brand-mark">TI</span><span>Timeless日常存档</span></a><h1>进入写作后台</h1><p>登录后可以保存草稿并发布文章。</p>{message}<form class="login-form" method="post" action="/admin/login"><label>管理员密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录后台 →</button></form></main>""",
+        f"""<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>进入写作后台</h1><p>登录后可以保存草稿并发布文章。</p>{message}<form class="login-form" method="post" action="/admin/login"><label>管理员密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录后台 →</button></form></main>""",
         "登录后台",
     )
 
@@ -481,7 +484,7 @@ def login_page(error: str = "") -> str:
 def user_login_page(error: str = "") -> str:
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
     return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/"><span class="brand-mark">TI</span><span>Timeless日常存档</span></a><h1>登录</h1><p>登录后管理你的日常待办。</p>{message}<form class="login-form" method="post" action="/login"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录 →</button></form><p class="auth-switch">还没有账号？<a href="/register">注册一个</a></p></main>''',
+        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>登录</h1><p>登录后管理你的日常待办。</p>{message}<form class="login-form" method="post" action="/login"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录 →</button></form><p class="auth-switch">还没有账号？<a href="/register">注册一个</a></p></main>''',
         "登录",
     )
 
@@ -489,7 +492,7 @@ def user_login_page(error: str = "") -> str:
 def register_page(error: str = "") -> str:
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
     return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/"><span class="brand-mark">TI</span><span>Timeless日常存档</span></a><h1>注册</h1><p>创建一个账号，开始记录自己的 Todo。</p>{message}<form class="login-form" method="post" action="/register"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><label>确认密码<input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">创建账号 →</button></form><p class="auth-switch">已经有账号？<a href="/login">返回登录</a></p></main>''',
+        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>注册</h1><p>创建一个账号，开始记录自己的 Todo。</p>{message}<form class="login-form" method="post" action="/register"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><label>确认密码<input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">创建账号 →</button></form><p class="auth-switch">已经有账号？<a href="/login">返回登录</a></p></main>''',
         "注册",
     )
 
@@ -695,6 +698,9 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if path == "/assets/background.jpg":
             self.send_file(ASSETS_DIR / "background.jpg", "image/jpeg")
+            return
+        if path == "/assets/favicon.svg":
+            self.send_file(FAVICON_PATH, "image/svg+xml; charset=utf-8")
             return
         if path == "/admin":
             token = self.require_auth()
