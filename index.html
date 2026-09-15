@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Timeless日常存档，记录代码、系统设计与日常观察。" />
+    <title>Timeless日常存档</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=14" />
+  </head>
+  <body>
+    <section class="landing" aria-labelledby="landing-title">
+      <div class="landing-center">
+        <p class="landing-kicker">PERSONAL BLOG · EST. 2026</p>
+        <h1 id="landing-title"><span class="landing-word">Timeless</span> <span>日常存档</span></h1>
+        <p class="landing-signature">写代码，也写下为什么。</p>
+      </div>
+      <div class="landing-scroll" aria-hidden="true"><span></span><small>SCROLL TO READ</small></div>
+    </section>
+
+    <main class="page-shell">
+      <header class="site-header">
+        <div class="brand"><span class="brand-mark">TI</span><span>Timeless日常存档</span></div>
+        <div class="header-tools"><span class="header-year">2026</span><span id="auth-nav"><!-- AUTH_NAV --></span></div>
+      </header>
+
+      <div class="content-layout">
+      <section class="articles" aria-labelledby="articles-title">
+        <div class="section-label"><span id="articles-title">最近写了什么</span><span id="article-count"><!-- ARTICLE_COUNT --></span></div>
+        <div class="article-list">
+          <!-- ARTICLES_START -->
+          <article class="article-entry article-entry-featured">
+            <div class="article-meta"><span class="article-number">01</span><span>工程实践</span><time datetime="2026-08-24">2026.08.24</time></div>
+            <h2>缓存失效之后：一次关于“新鲜感”的系统思考</h2>
+            <p>从一个线上事故出发，聊聊缓存、认知和我们为什么总会忘记更新。</p>
+            <span class="article-duration">8 min read</span>
+          </article>
+          <article class="article-entry">
+            <div class="article-meta"><span class="article-number">02</span><span>前端</span><time datetime="2026-07-16">2026.07.16</time></div>
+            <h2>当我不再追逐“最佳实践”</h2>
+            <p>工具会变，但判断问题的方式可以留下。</p>
+            <span class="article-duration">6 min read</span>
+          </article>
+          <article class="article-entry">
+            <div class="article-meta"><span class="article-number">03</span><span>读书</span><time datetime="2026-06-08">2026.06.08</time></div>
+            <h2>读《设计心理学》：好的默认值</h2>
+            <p>少一个选择，有时就是多一点自由。</p>
+            <span class="article-duration">4 min read</span>
+          </article>
+          <article class="article-entry">
+            <div class="article-meta"><span class="article-number">04</span><span>随笔</span><time datetime="2026-04-29">2026.04.29</time></div>
+            <h2>给忙碌的人留一块没有通知的地方</h2>
+            <p>关于注意力、边界和一个下午的散步。</p>
+            <span class="article-duration">3 min read</span>
+          </article>
+          <article class="article-entry">
+            <div class="article-meta"><span class="article-number">05</span><span>系统设计</span><time datetime="2026-03-12">2026.03.12</time></div>
+            <h2>把“可观测”从口号变成习惯</h2>
+            <p>日志、指标和那些真正需要被看见的信号。</p>
+            <span class="article-duration">9 min read</span>
+          </article>
+          <!-- ARTICLES_END -->
+        </div>
+      </section>
+
+      <aside class="calendar-panel" aria-label="日历">
+        <!-- CALENDAR -->
+        <!-- TODO_PANEL -->
+      </aside>
+      </div>
+
+      <footer class="site-footer">
+        <span>© 2026 TIMELESS日常存档</span>
+        <span>鲁ICP备2026053385号</span>
+        <span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span>
+      </footer>
+    </main>
+    <script>
+      (() => {
+        const calendarPanel = document.querySelector('.calendar-panel');
+        if (!calendarPanel) return;
+        const scheduleNotice = (root) => {
+          const notice = root.querySelector('[data-auto-hide="true"]');
+          if (!notice) return;
+          window.setTimeout(() => notice.classList.add('is-hiding'), 2600);
+          window.setTimeout(() => notice.remove(), 3100);
+        };
+        const replaceTodo = (markup) => {
+          const template = document.createElement('template');
+          template.innerHTML = markup.trim();
+          const nextTodo = template.content.querySelector('#todo');
+          const currentTodo = document.getElementById('todo');
+          if (!nextTodo || !currentTodo) throw new Error('Todo panel missing');
+          currentTodo.replaceWith(nextTodo);
+          scheduleNotice(nextTodo);
+          return { template, nextTodo };
+        };
+        scheduleNotice(document);
+        calendarPanel.addEventListener('click', async (event) => {
+          const editLink = event.target.closest('.todo-actions a');
+          if (editLink && calendarPanel.contains(editLink)) {
+            event.preventDefault();
+            try {
+              const response = await fetch(editLink.href, { headers: { 'X-Requested-With': 'fetch' } });
+              if (!response.ok) throw new Error('Todo edit failed');
+              replaceTodo(await response.text());
+            } catch (error) {
+              window.location.assign(editLink.href);
+            }
+            return;
+          }
+          const link = event.target.closest('a.calendar-day, a.calendar-nav, a.todo-date-link');
+          if (!link || !calendarPanel.contains(link)) return;
+          event.preventDefault();
+          const targetUrl = new URL(link.href, window.location.href);
+          const dateValue = targetUrl.searchParams.get('todo_date');
+          if (!dateValue) return;
+          link.setAttribute('aria-busy', 'true');
+          try {
+            const isMonthNavigation = link.classList.contains('calendar-nav') || link.classList.contains('todo-date-link');
+            const endpoint = isMonthNavigation
+              ? `/calendar/view?month=${encodeURIComponent(targetUrl.searchParams.get('month') || '')}&todo_date=${encodeURIComponent(dateValue)}`
+              : `/todo/view?date=${encodeURIComponent(dateValue)}`;
+            const response = await fetch(endpoint, {
+              headers: { 'X-Requested-With': 'fetch' }
+            });
+            if (!response.ok) throw new Error('Todo view failed');
+            const { template } = replaceTodo(await response.text());
+            if (isMonthNavigation) {
+              const nextCalendar = template.content.querySelector('#calendar');
+              const currentCalendar = document.getElementById('calendar');
+              if (!nextCalendar || !currentCalendar) throw new Error('Calendar missing');
+              currentCalendar.replaceWith(nextCalendar);
+            } else {
+              const currentCalendar = document.getElementById('calendar');
+              currentCalendar.querySelectorAll('.calendar-day.is-selected').forEach((day) => day.classList.remove('is-selected'));
+              link.classList.add('is-selected');
+            }
+            window.history.replaceState({}, '', `${targetUrl.pathname}${targetUrl.search}#todo`);
+          } catch (error) {
+            window.location.assign(link.href);
+          } finally {
+            link.removeAttribute('aria-busy');
+          }
+        });
+        calendarPanel.addEventListener('submit', async (event) => {
+          const form = event.target.closest('#todo form');
+          if (!form || !calendarPanel.contains(form)) return;
+          event.preventDefault();
+          const submitter = event.submitter;
+          if (submitter) submitter.disabled = true;
+          try {
+            const response = await fetch(form.action, {
+              method: form.method || 'POST',
+              body: new URLSearchParams(new FormData(form)),
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'X-Requested-With': 'fetch'
+              }
+            });
+            const markup = await response.text();
+            if (!markup.includes('id="todo"')) throw new Error('Todo update failed');
+            const { template, nextTodo } = replaceTodo(markup);
+            const nextCalendar = template.content.querySelector('#calendar');
+            const currentCalendar = document.getElementById('calendar');
+            if (nextCalendar && currentCalendar) currentCalendar.replaceWith(nextCalendar);
+            const selectedDate = nextTodo.querySelector('input[name="due_date"]')?.value;
+            if (selectedDate) {
+              const calendar = document.getElementById('calendar');
+              calendar.querySelectorAll('.calendar-day.is-selected').forEach((day) => day.classList.remove('is-selected'));
+              const selectedLink = calendar.querySelector(`a[href*="todo_date=${selectedDate}"]`);
+              if (selectedLink) selectedLink.classList.add('is-selected');
+              window.history.replaceState({}, '', `/?month=${selectedDate.slice(0, 7)}&todo_date=${selectedDate}#todo`);
+            }
+          } catch (error) {
+            form.submit();
+          } finally {
+            if (submitter && submitter.isConnected) submitter.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
