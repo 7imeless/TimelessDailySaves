@@ -4,6 +4,7 @@ import html
 import calendar
 import hashlib
 import hmac
+import json
 import os
 import re
 import secrets
@@ -20,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent
 INDEX_PATH = BASE_DIR / "index.html"
 STYLES_PATH = BASE_DIR / "styles.css"
 ASSETS_DIR = BASE_DIR / "assets"
+UPLOADS_DIR = BASE_DIR / "uploads"
 FAVICON_PATH = ASSETS_DIR / "favicon.svg"
 BRAND_MARK = '<span class="brand-mark" aria-hidden="true"></span>'
 FAVICON_LINK = '<link rel="icon" href="/assets/favicon.svg?v=1" type="image/svg+xml">'
@@ -30,6 +32,7 @@ ADMIN_PASSWORD = os.environ.get("TIMELESS_ADMIN_PASSWORD", "local-change-this")
 COOKIE_SECURE = os.environ.get("TIMELESS_COOKIE_SECURE", "0") == "1"
 SESSIONS: dict[str, dict[str, str]] = {}
 MAX_BODY_SIZE = 2 * 1024 * 1024
+MAX_IMAGE_SIZE = 8 * 1024 * 1024
 
 SEED_ARTICLES = [
     {
@@ -208,7 +211,12 @@ def escape(value: object) -> str:
 
 
 def inline_markdown(value: str) -> str:
-    safe = html.escape(value, quote=False)
+    safe = html.escape(value, quote=True)
+    safe = re.sub(
+        r"!\[([^\]]*)\]\(((?:/uploads/[a-zA-Z0-9._-]+|https?://[^\s)]+))\)",
+        r'<img src="\2" alt="\1" loading="lazy">',
+        safe,
+    )
     safe = re.sub(r"`([^`]+)`", r"<code>\1</code>", safe)
     safe = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", safe)
     safe = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", safe)
@@ -457,20 +465,20 @@ def public_article(post: sqlite3.Row) -> str:
     title = escape(post["title"])
     date = display_date(post["published_at"] or post["updated_at"])
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=15"></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=16"></head>
 <body><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p><div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main></body></html>"""
 
 
 def admin_css() -> str:
     return """<style>
       .admin-shell{width:min(1100px,calc(100% - 48px));margin:0 auto;padding:36px 0 70px}.admin-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:28px;border-bottom:1px solid var(--line)}.admin-header h1{font:600 26px var(--display);letter-spacing:-.06em;margin:0}.admin-header p{color:var(--muted);font:10px var(--mono);margin:6px 0 0}.admin-actions{display:flex;gap:10px;align-items:center}.admin-button{display:inline-block;padding:11px 15px;border:1px solid var(--faint);color:var(--text);font:500 10px var(--mono);background:transparent;cursor:pointer}.admin-button.primary{background:var(--accent);color:#20331d;border-color:var(--accent)}.admin-button.danger{color:#efaa9b}.admin-list{margin-top:30px;border-top:1px solid var(--line)}.admin-row{display:grid;grid-template-columns:45px 1fr 100px 110px 75px;gap:18px;align-items:center;padding:19px 0;border-bottom:1px solid var(--line)}.admin-row .index{color:var(--accent);font:10px var(--mono)}.admin-row h2{margin:0 0 7px;font-size:16px;letter-spacing:-.04em}.admin-row p{margin:0;color:var(--muted);font:10px var(--mono)}.admin-status{font:9px var(--mono);color:var(--muted)}.admin-status.published{color:var(--accent)}.admin-row time{color:var(--muted);font:10px var(--mono)}.admin-row .edit-link{color:var(--accent);font:10px var(--mono);text-align:right}.admin-form{max-width:780px;margin:45px auto 0}.admin-form label{display:block;color:var(--muted);font:10px var(--mono);margin:0 0 23px}.admin-form input,.admin-form textarea,.admin-form select{display:block;width:100%;margin-top:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:13px 14px;outline:0;font:14px var(--sans)}.admin-form textarea{line-height:1.7;resize:vertical}.admin-form input:focus,.admin-form textarea:focus,.admin-form select:focus{border-color:var(--accent)}.admin-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.admin-form-actions{display:flex;align-items:center;gap:15px;margin-top:7px}.admin-note{color:var(--muted);font:10px var(--mono);line-height:1.7}.admin-error{color:#efaa9b;font:13px var(--mono);margin:18px 0}.admin-success{color:var(--accent);font:12px var(--mono);margin:16px 0}.login-shell{width:min(500px,calc(100% - 48px));max-width:calc(100vw - 24px);margin:10vh auto;padding:48px;overflow:hidden;background:rgba(9,11,10,.88);border:1px solid rgba(215,223,217,.12)}.login-shell .brand{margin-bottom:50px}.login-shell h1{font:600 38px var(--display);letter-spacing:-.05em;margin:0 0 14px}.login-shell>p{color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 34px}.login-form{min-width:0}.login-form label{display:block;min-width:0;color:var(--muted);font:13px var(--mono)}.login-form input{display:block;width:100%;max-width:100%;min-width:0;margin:11px 0 23px;border:1px solid var(--line);background:rgba(17,21,18,.92);color:var(--text);padding:15px 16px;font:16px var(--sans);outline:0}.login-form input:focus{border-color:var(--accent)}.login-shell .admin-button{padding:13px 18px;font-size:14px}.login-shell .auth-switch{font-size:13px!important;margin-top:28px!important;margin-bottom:0!important}.empty-state{padding:35px 0;color:var(--muted);font:11px var(--mono)}
-      .admin-header h1,.admin-row h2,.login-shell h1{letter-spacing:0}
+      .admin-header h1,.admin-row h2,.login-shell h1{letter-spacing:0}.image-upload{display:flex;align-items:center;gap:12px;margin:-8px 0 24px}.image-upload input{display:none}.image-upload-status{color:var(--muted);font:11px var(--mono)}.image-upload-status.is-error{color:#efaa9b}.image-upload-status.is-success{color:var(--accent)}
       @media(max-width:700px){.admin-shell{width:min(calc(100% - 38px),540px)}.admin-header{align-items:flex-start;gap:20px}.admin-actions{flex-direction:column;align-items:stretch}.admin-row{grid-template-columns:32px 1fr 65px;gap:10px}.admin-row time{display:none}.admin-row .edit-link{text-align:right}.admin-form-grid{grid-template-columns:1fr}.login-shell{width:calc(100% - 24px);margin:7vh auto;padding:34px 22px}.login-shell .brand{margin-bottom:42px}.login-shell h1{font-size:34px}.login-shell>p{font-size:15px}}
     </style>"""
 
 
 def admin_layout(content: str, title: str = "后台") -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=15">{admin_css()}</head><body>{content}</body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=16">{admin_css()}</head><body>{content}</body></html>"""
 
 
 def login_page(error: str = "") -> str:
@@ -530,7 +538,7 @@ def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "
         else ""
     )
     return admin_layout(
-        f"""<main class="admin-shell"><header class="admin-header"><div><h1>{'编辑文章' if is_editing else '写一篇新文章'}</h1><p>Markdown 内容会直接生成文章页面。</p></div><div class="admin-actions"><a class="admin-button" href="/admin">返回列表</a>{delete_form}</div></header>{message}<form class="admin-form" method="post" action="/admin/save"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="id" value="{value('id')}"><label>文章标题<input name="title" value="{value('title')}" placeholder="输入一个清楚的标题" required></label><div class="admin-form-grid"><label>分类<input name="category" value="{value('category', '随笔')}" placeholder="例如：工程实践"></label><label>URL 标识<input name="slug" value="{value('slug')}" placeholder="例如：my-first-post"></label></div><label>文章摘要<input name="excerpt" value="{value('excerpt')}" placeholder="显示在首页的一句话摘要"></label><label>正文（Markdown）<textarea name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label><div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、行内代码和代码块。<br>保存后可从文章列表打开公开页面。</div></div><div class="admin-form-actions"><button class="admin-button primary" type="submit">{'保存修改' if is_editing else '保存文章'} →</button><a class="admin-button" href="/admin">取消</a></div></form></main>""",
+        f"""<main class="admin-shell"><header class="admin-header"><div><h1>{'编辑文章' if is_editing else '写一篇新文章'}</h1><p>Markdown 内容会直接生成文章页面。</p></div><div class="admin-actions"><a class="admin-button" href="/admin">返回列表</a>{delete_form}</div></header>{message}<form class="admin-form" method="post" action="/admin/save"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="id" value="{value('id')}"><label>文章标题<input name="title" value="{value('title')}" placeholder="输入一个清楚的标题" required></label><div class="admin-form-grid"><label>分类<input name="category" value="{value('category', '随笔')}" placeholder="例如：工程实践"></label><label>URL 标识<input name="slug" value="{value('slug')}" placeholder="例如：my-first-post"></label></div><label>文章摘要<input name="excerpt" value="{value('excerpt')}" placeholder="显示在首页的一句话摘要"></label><label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label><div class="image-upload"><input id="article-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"><button class="admin-button" id="image-upload-button" type="button">上传图片</button><span class="image-upload-status" id="image-upload-status">JPEG / PNG / GIF / WebP，最大 8 MB</span></div><div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、图片、行内代码和代码块。<br>保存后可从文章列表打开公开页面。</div></div><div class="admin-form-actions"><button class="admin-button primary" type="submit">{'保存修改' if is_editing else '保存文章'} →</button><a class="admin-button" href="/admin">取消</a></div></form></main><script>(()=>{{const picker=document.getElementById('article-image');const button=document.getElementById('image-upload-button');const status=document.getElementById('image-upload-status');const content=document.getElementById('article-content');const csrf={json.dumps(csrf)};button.addEventListener('click',()=>picker.click());picker.addEventListener('change',async()=>{{const file=picker.files[0];if(!file)return;status.className='image-upload-status';if(file.size>8*1024*1024){{status.textContent='图片不能超过 8 MB';status.classList.add('is-error');picker.value='';return;}}button.disabled=true;status.textContent='正在上传...';try{{const response=await fetch('/admin/upload-image',{{method:'POST',headers:{{'Content-Type':file.type,'X-CSRF-Token':csrf}},body:file}});const result=await response.json();if(!response.ok)throw new Error(result.error||'上传失败');const alt=file.name.replace(/[.][^.]+$/,'').replaceAll('[','').replaceAll(']','')||'文章图片';const markdown=`![${{alt}}](${{result.url}})`;const start=content.selectionStart;const end=content.selectionEnd;const before=content.value.slice(0,start);const after=content.value.slice(end);const prefix=before&&!before.endsWith('\\n')?'\\n\\n':'';const suffix=after&&!after.startsWith('\\n')?'\\n\\n':'';content.value=before+prefix+markdown+suffix+after;const cursor=(before+prefix+markdown).length;content.focus();content.setSelectionRange(cursor,cursor);status.textContent='图片已插入正文';status.classList.add('is-success');}}catch(error){{status.textContent=error.message;status.classList.add('is-error');}}finally{{button.disabled=false;picker.value='';}}}});}})();</script>""",
         "编辑文章" if is_editing else "写文章",
     )
 
@@ -547,6 +555,15 @@ class BlogHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def send_json(self, payload: dict[str, str], status: int = 200) -> None:
+        encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -610,6 +627,43 @@ class BlogHandler(BaseHTTPRequestHandler):
 
     def wants_partial(self) -> bool:
         return self.headers.get("X-Requested-With", "").lower() == "fetch"
+
+    def handle_image_upload(self) -> None:
+        token = self.require_auth()
+        if token is None:
+            self.send_json({"error": "请先登录后台。"}, 401)
+            return
+        supplied_csrf = self.headers.get("X-CSRF-Token", "")
+        if not secrets.compare_digest(supplied_csrf, csrf_for(token)):
+            self.send_json({"error": "请求已过期，请刷新页面后重试。"}, 403)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if length <= 0:
+            self.send_json({"error": "请选择图片。"}, 400)
+            return
+        if length > MAX_IMAGE_SIZE:
+            self.send_json({"error": "图片不能超过 8 MB。"}, 413)
+            return
+        content = self.rfile.read(length)
+        extension = ""
+        if content.startswith(b"\x89PNG\r\n\x1a\n"):
+            extension = ".png"
+        elif content.startswith(b"\xff\xd8\xff"):
+            extension = ".jpg"
+        elif content.startswith((b"GIF87a", b"GIF89a")):
+            extension = ".gif"
+        elif len(content) >= 12 and content.startswith(b"RIFF") and content[8:12] == b"WEBP":
+            extension = ".webp"
+        if not extension:
+            self.send_json({"error": "仅支持 JPEG、PNG、GIF 和 WebP 图片。"}, 415)
+            return
+        UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+        filename = f"{datetime.now(timezone.utc):%Y%m%d-%H%M%S}-{secrets.token_hex(5)}{extension}"
+        (UPLOADS_DIR / filename).write_bytes(content)
+        self.send_json({"url": f"/uploads/{filename}"}, 201)
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
@@ -702,6 +756,15 @@ class BlogHandler(BaseHTTPRequestHandler):
         if path == "/assets/favicon.svg":
             self.send_file(FAVICON_PATH, "image/svg+xml; charset=utf-8")
             return
+        if path.startswith("/uploads/"):
+            filename = path.removeprefix("/uploads/")
+            match = re.fullmatch(r"[0-9]{8}-[0-9]{6}-[a-f0-9]{10}\.(jpg|png|gif|webp)", filename)
+            if match is None:
+                self.send_error(404)
+                return
+            content_types = {"jpg": "image/jpeg", "png": "image/png", "gif": "image/gif", "webp": "image/webp"}
+            self.send_file(UPLOADS_DIR / filename, content_types[match.group(1)])
+            return
         if path == "/admin":
             token = self.require_auth()
             if not token:
@@ -745,6 +808,9 @@ class BlogHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
+        if path == "/admin/upload-image":
+            self.handle_image_upload()
+            return
         try:
             form = self.read_form()
         except ValueError as error:
