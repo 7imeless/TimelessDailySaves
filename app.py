@@ -310,7 +310,7 @@ def _protect_fenced_code(value: str, replacements: dict[str, str]) -> str:
         code = "\n".join(lines[1:-1] if len(lines) > 1 and lines[-1].strip() in {"```", "~~~"} else lines[1:])
         replacements[key] = f'<pre><code{language_attr}>{html.escape(code, quote=False)}\n</code></pre>'
         return key
-    return re.sub(r"(?ms)^((?:```|~~~)[^\n]*\n.*?^(?:```|~~~)\s*)$", replace, value)
+    return re.sub(r"(?ms)^((?:```|~~~)[^\n]*\n.*?^(?:```|~~~)[ \t]*(?:\n|$))", replace, value)
 
 
 def markdown_to_html(markdown: str) -> str:
@@ -376,6 +376,12 @@ def markdown_to_html(markdown: str) -> str:
         rendered = rendered.replace(escape(key), value).replace(key, value)
     rendered = re.sub(r"<p>\s*(<div class=\"math-block\">.*?</div>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
     rendered = re.sub(r"<p>\s*(<pre>.*?</pre>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
+    rendered = re.sub(
+        r"<p>\s*(<pre>.*?</pre>)\s*([^<].*?)</p>",
+        lambda m: m.group(1) + (f"<p>{m.group(2)}</p>" if m.group(2).strip() else ""),
+        rendered,
+        flags=re.DOTALL,
+    )
     if footnotes:
         rendered += '<section class="footnotes"><ol>' + "".join(
             f'<li id="fn-{escape(label)}">{markdown_to_html(note)} <a href="#fnref-{escape(label)}" class="footnote-backref">↩</a></li>'
