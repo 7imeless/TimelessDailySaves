@@ -94,6 +94,7 @@ def init_db() -> None:
                 username TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'user',
+                is_active INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL
             )
             """
@@ -101,6 +102,8 @@ def init_db() -> None:
         user_columns = {row[1] for row in connection.execute("PRAGMA table_info(users)").fetchall()}
         if "role" not in user_columns:
             connection.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+        if "is_active" not in user_columns:
+            connection.execute("ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
         admin_user = connection.execute("SELECT id, password_hash FROM users WHERE username = 'admin'").fetchone()
         if admin_user is None:
             connection.execute(
@@ -108,9 +111,18 @@ def init_db() -> None:
                 (hash_password(ADMIN_PASSWORD), utc_now()),
             )
         else:
-            if not verify_password(ADMIN_PASSWORD, admin_user["password_hash"]):
-                connection.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(ADMIN_PASSWORD), admin_user["id"]))
             connection.execute("UPDATE users SET role = 'admin' WHERE id = ?", (admin_user["id"],))
+            connection.execute("UPDATE users SET is_active = 1 WHERE id = ?", (admin_user["id"],))
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+        connection.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_mode', 'open')")
+        connection.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_invite_hash', '')")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS todos (
@@ -188,6 +200,31 @@ def verify_password(password: str, stored: str) -> bool:
         return hmac.compare_digest(digest.hex(), digest_hex)
     except (ValueError, TypeError):
         return False
+
+
+def get_setting(key: str, default: str = "") -> str:
+    with db_connection() as connection:
+        row = connection.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row is not None else default
+
+
+def set_setting(key: str, value: str) -> None:
+    with db_connection() as connection:
+        connection.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+
+
+def registration_mode() -> str:
+    mode = get_setting("registration_mode", "open")
+    return mode if mode in {"open", "invite", "closed"} else "closed"
+
+
+def revoke_user_sessions(user_id: int, except_token: str | None = None) -> None:
+    for session_token, session in list(SESSIONS.items()):
+        if session_token != except_token and session.get("user_id") == str(user_id):
+            SESSIONS.pop(session_token, None)
 
 
 def display_date(value: str) -> str:
@@ -399,7 +436,8 @@ def todos_for_user(user_id: int) -> list[sqlite3.Row]:
 
 def auth_nav(user: sqlite3.Row | None, token: str | None) -> str:
     if user is None or not token:
-        return '<span class="auth-nav"><a href="/login">登录</a><a href="/register">注册</a></span>'
+        register_link = '<a href="/register">注册</a>' if registration_mode() != "closed" else ""
+        return f'<span class="auth-nav"><a href="/login">登录</a>{register_link}</span>'
     admin_link = '<a href="/admin">后台</a>' if user["role"] == "admin" else ""
     return f'<span class="auth-nav"><span class="user-greeting">{escape(user["username"])}</span>{admin_link}<form class="inline-form" method="post" action="/logout"><input type="hidden" name="csrf" value="{escape(csrf_for(token))}"><button type="submit">退出</button></form></span>'
 
@@ -484,7 +522,7 @@ def public_article(post: sqlite3.Row) -> str:
     date = display_date(post["published_at"] or post["updated_at"])
     cover = f'<img class="article-detail-cover" src="{escape(post["cover_image"])}" alt="{title}" fetchpriority="high">' if post["cover_image"] else ""
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=17"></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=18"></head>
 <body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}<div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main><script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
 
 
@@ -492,12 +530,13 @@ def admin_css() -> str:
     return """<style>
       .admin-shell{width:min(1100px,calc(100% - 48px));margin:0 auto;padding:36px 0 70px}.admin-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:28px;border-bottom:1px solid var(--line)}.admin-header h1{font:600 26px var(--display);letter-spacing:-.06em;margin:0}.admin-header p{color:var(--muted);font:10px var(--mono);margin:6px 0 0}.admin-actions{display:flex;gap:10px;align-items:center}.admin-button{display:inline-block;padding:11px 15px;border:1px solid var(--faint);color:var(--text);font:500 10px var(--mono);background:transparent;cursor:pointer}.admin-button.primary{background:var(--accent);color:#20331d;border-color:var(--accent)}.admin-button.danger{color:#efaa9b}.admin-list{margin-top:30px;border-top:1px solid var(--line)}.admin-row{display:grid;grid-template-columns:45px 1fr 100px 110px 75px;gap:18px;align-items:center;padding:19px 0;border-bottom:1px solid var(--line)}.admin-row .index{color:var(--accent);font:10px var(--mono)}.admin-row h2{margin:0 0 7px;font-size:16px;letter-spacing:-.04em}.admin-row p{margin:0;color:var(--muted);font:10px var(--mono)}.admin-status{font:9px var(--mono);color:var(--muted)}.admin-status.published{color:var(--accent)}.admin-row time{color:var(--muted);font:10px var(--mono)}.admin-row .edit-link{color:var(--accent);font:10px var(--mono);text-align:right}.admin-form{max-width:780px;margin:45px auto 0}.admin-form label{display:block;color:var(--muted);font:10px var(--mono);margin:0 0 23px}.admin-form input,.admin-form textarea,.admin-form select{display:block;width:100%;margin-top:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:13px 14px;outline:0;font:14px var(--sans)}.admin-form textarea{line-height:1.7;resize:vertical}.admin-form input:focus,.admin-form textarea:focus,.admin-form select:focus{border-color:var(--accent)}.admin-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.admin-form-actions{display:flex;align-items:center;gap:15px;margin-top:7px}.admin-note{color:var(--muted);font:10px var(--mono);line-height:1.7}.admin-error{color:#efaa9b;font:13px var(--mono);margin:18px 0}.admin-success{color:var(--accent);font:12px var(--mono);margin:16px 0}.login-shell{width:min(500px,calc(100% - 48px));max-width:calc(100vw - 24px);margin:10vh auto;padding:48px;overflow:hidden;background:rgba(9,11,10,.88);border:1px solid rgba(215,223,217,.12)}.login-shell .brand{margin-bottom:50px}.login-shell h1{font:600 38px var(--display);letter-spacing:-.05em;margin:0 0 14px}.login-shell>p{color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 34px}.login-form{min-width:0}.login-form label{display:block;min-width:0;color:var(--muted);font:13px var(--mono)}.login-form input{display:block;width:100%;max-width:100%;min-width:0;margin:11px 0 23px;border:1px solid var(--line);background:rgba(17,21,18,.92);color:var(--text);padding:15px 16px;font:16px var(--sans);outline:0}.login-form input:focus{border-color:var(--accent)}.login-shell .admin-button{padding:13px 18px;font-size:14px}.login-shell .auth-switch{font-size:13px!important;margin-top:28px!important;margin-bottom:0!important}.empty-state{padding:35px 0;color:var(--muted);font:11px var(--mono)}
       .admin-header h1,.admin-row h2,.login-shell h1{letter-spacing:0}.image-upload{display:flex;align-items:center;gap:12px;margin:-8px 0 24px}.image-upload input,.cover-editor>input[type=file]{display:none}.image-upload-status{color:var(--muted);font:11px var(--mono)}.image-upload-status.is-error{color:#efaa9b}.image-upload-status.is-success{color:var(--accent)}.cover-editor{margin:0 0 24px;color:var(--muted);font:10px var(--mono)}.cover-preview{width:100%;aspect-ratio:16/7;margin:10px 0 12px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}.cover-preview[hidden]{display:none}.cover-preview img{width:100%;height:100%;object-fit:cover}.cover-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-      @media(max-width:700px){.admin-shell{width:min(calc(100% - 38px),540px)}.admin-header{align-items:flex-start;gap:20px}.admin-actions{flex-direction:column;align-items:stretch}.admin-row{grid-template-columns:32px 1fr 65px;gap:10px}.admin-row time{display:none}.admin-row .edit-link{text-align:right}.admin-form-grid{grid-template-columns:1fr}.login-shell{width:calc(100% - 24px);margin:7vh auto;padding:34px 22px}.login-shell .brand{margin-bottom:42px}.login-shell h1{font-size:34px}.login-shell>p{font-size:15px}}
+      .account-settings{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr);gap:55px;padding:38px 0;border-bottom:1px solid var(--line)}.account-settings h2,.account-list h2{margin:0 0 8px;font-size:20px;letter-spacing:0}.account-settings>div>p{margin:0;color:var(--muted);font:11px/1.7 var(--mono)}.account-form{display:grid;gap:16px}.account-form label{color:var(--muted);font:11px var(--mono)}.account-form input,.account-form select,.account-actions input{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:12px 13px;outline:0;font:14px var(--sans)}.account-form small{color:var(--muted);font:10px var(--mono)}.account-form .admin-button{justify-self:start}.account-list{margin-top:42px}.account-list-head{display:flex;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line)}.account-list-head span{color:var(--accent);font:11px var(--mono)}.account-row{display:grid;grid-template-columns:minmax(145px,1fr) 95px 70px minmax(260px,1.3fr);gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid var(--line)}.account-row>div:first-child{display:grid;gap:5px}.account-row strong{font-size:15px}.account-row>div:first-child span,.account-row>span{color:var(--muted);font:10px var(--mono)}.account-state.active{color:var(--accent)}.account-actions{display:flex;justify-content:flex-end;gap:8px;align-items:flex-end}.account-actions form{display:flex;gap:7px;align-items:flex-end}.account-actions input{width:150px;margin:0;padding:9px 10px;font-size:12px}.account-admin-label{display:block;text-align:right;color:var(--accent);font:11px var(--mono)}
+      @media(max-width:700px){.admin-shell{width:min(calc(100% - 38px),540px)}.admin-header{align-items:flex-start;gap:20px}.admin-actions{flex-direction:column;align-items:stretch}.admin-row{grid-template-columns:32px 1fr 65px;gap:10px}.admin-row time{display:none}.admin-row .edit-link{text-align:right}.admin-form-grid{grid-template-columns:1fr}.login-shell{width:calc(100% - 24px);margin:7vh auto;padding:34px 22px}.login-shell .brand{margin-bottom:42px}.login-shell h1{font-size:34px}.login-shell>p{font-size:15px}.account-settings{grid-template-columns:1fr;gap:22px;padding:30px 0}.account-row{grid-template-columns:1fr auto;gap:10px}.account-row>span{grid-column:2}.account-actions,.account-admin-label{grid-column:1/-1;justify-content:flex-start;text-align:left}.account-actions{flex-wrap:wrap}.account-actions form:first-child{width:100%}.account-actions form:first-child input{flex:1;width:auto}}
     </style>"""
 
 
 def admin_layout(content: str, title: str = "后台") -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=17">{admin_css()}</head><body>{content}</body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=18">{admin_css()}</head><body>{content}</body></html>"""
 
 
 def login_page(error: str = "") -> str:
@@ -510,16 +549,25 @@ def login_page(error: str = "") -> str:
 
 def user_login_page(error: str = "") -> str:
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
+    register_prompt = '<p class="auth-switch">还没有账号？<a href="/register">注册一个</a></p>' if registration_mode() != "closed" else ""
     return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>登录</h1><p>登录后管理你的日常待办。</p>{message}<form class="login-form" method="post" action="/login"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录 →</button></form><p class="auth-switch">还没有账号？<a href="/register">注册一个</a></p></main>''',
+        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>登录</h1><p>登录后管理你的日常待办。</p>{message}<form class="login-form" method="post" action="/login"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录 →</button></form>{register_prompt}</main>''',
         "登录",
     )
 
 
 def register_page(error: str = "") -> str:
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
+    mode = registration_mode()
+    if mode == "closed":
+        return admin_layout(
+            f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>暂停注册</h1><p>目前没有开放新账号注册。</p>{message}<p class="auth-switch">已有账号？<a href="/login">返回登录</a></p></main>''',
+            "暂停注册",
+        )
+    invite_field = '<label>邀请码<input name="invite_code" autocomplete="off" required></label>' if mode == "invite" else ""
+    description = "输入邀请码，创建你的 Todo 账号。" if mode == "invite" else "创建一个账号，开始记录自己的 Todo。"
     return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>注册</h1><p>创建一个账号，开始记录自己的 Todo。</p>{message}<form class="login-form" method="post" action="/register"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><label>确认密码<input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">创建账号 →</button></form><p class="auth-switch">已经有账号？<a href="/login">返回登录</a></p></main>''',
+        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>注册</h1><p>{description}</p>{message}<form class="login-form" method="post" action="/register">{invite_field}<label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><label>确认密码<input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">创建账号 →</button></form><p class="auth-switch">已经有账号？<a href="/login">返回登录</a></p></main>''',
         "注册",
     )
 
@@ -539,9 +587,52 @@ def dashboard_page(message: str = "", token: str = "") -> str:
         )
     notice = f'<p class="admin-success">{escape(message)}</p>' if message else ""
     return admin_layout(
-        f"""<main class="admin-shell"><header class="admin-header"><div><h1>Timeless日常存档</h1><p>写作后台 / {len(rows)} 篇文章</p></div><div class="admin-actions"><a class="admin-button primary" href="/admin/new">新建文章 +</a><a class="admin-button" href="/">查看网站 ↗</a><form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="{escape(csrf)}"><button class="admin-button" type="submit">退出</button></form></div></header>{notice}<section class="admin-list">{''.join(rows) or '<p class="empty-state">还没有文章，点击右上角开始写第一篇。</p>'}</section></main>""",
+        f"""<main class="admin-shell"><header class="admin-header"><div><h1>Timeless日常存档</h1><p>写作后台 / {len(rows)} 篇文章</p></div><div class="admin-actions"><a class="admin-button primary" href="/admin/new">新建文章 +</a><a class="admin-button" href="/admin/accounts">账号管理</a><a class="admin-button" href="/">查看网站 ↗</a><form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="{escape(csrf)}"><button class="admin-button" type="submit">退出</button></form></div></header>{notice}<section class="admin-list">{''.join(rows) or '<p class="empty-state">还没有文章，点击右上角开始写第一篇。</p>'}</section></main>""",
         "文章管理",
     )
+
+
+def accounts_page(message: str = "", error: str = "", token: str = "") -> str:
+    csrf = csrf_for(token) if token else ""
+    mode = registration_mode()
+    invite_exists = bool(get_setting("registration_invite_hash"))
+    options = "".join(
+        f'<option value="{value}"{" selected" if mode == value else ""}>{label}</option>'
+        for value, label in (("open", "开放注册"), ("invite", "仅限邀请码"), ("closed", "关闭注册"))
+    )
+    with db_connection() as connection:
+        users = connection.execute(
+            """SELECT users.*, COUNT(todos.id) AS todo_count
+               FROM users LEFT JOIN todos ON todos.user_id = users.id
+               GROUP BY users.id ORDER BY CASE users.role WHEN 'admin' THEN 0 ELSE 1 END, users.created_at"""
+        ).fetchall()
+    rows: list[str] = []
+    for user in users:
+        state = "正常" if user["is_active"] else "已停用"
+        state_class = " active" if user["is_active"] else ""
+        if user["role"] == "admin":
+            actions = '<span class="account-admin-label">管理员账号</span>'
+        else:
+            toggle_label = "停用" if user["is_active"] else "启用"
+            actions = f'''<div class="account-actions">
+              <form method="post" action="/admin/account/reset-password"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="user_id" value="{user['id']}"><input name="new_password" type="password" minlength="8" placeholder="新密码（至少 8 位）" required><button class="admin-button" type="submit">重置密码</button></form>
+              <form method="post" action="/admin/account/toggle"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="user_id" value="{user['id']}"><button class="admin-button" type="submit">{toggle_label}</button></form>
+              <form method="post" action="/admin/account/delete" onsubmit="return confirm('删除后该用户的 Todo 也会永久删除，确定继续吗？')"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="user_id" value="{user['id']}"><button class="admin-button danger" type="submit">删除</button></form>
+            </div>'''
+        rows.append(
+            f'''<div class="account-row"><div><strong>{escape(user['username'])}</strong><span>{escape(user['role'])} · {display_date(user['created_at'])}</span></div><span>{user['todo_count']} 条 Todo</span><span class="account-state{state_class}">{state}</span>{actions}</div>'''
+        )
+    notice = f'<p class="admin-success">{escape(message)}</p>' if message else ""
+    problem = f'<p class="admin-error">{escape(error)}</p>' if error else ""
+    invite_status = "已设置邀请码，留空将保持不变。" if invite_exists else "尚未设置邀请码。"
+    content = f'''<main class="admin-shell">
+      <header class="admin-header"><div><h1>账号与注册</h1><p>{len(users)} 个账号</p></div><div class="admin-actions"><a class="admin-button" href="/admin">返回文章管理</a><a class="admin-button" href="/">查看网站 ↗</a></div></header>
+      {notice}{problem}
+      <section class="account-settings"><div><h2>注册方式</h2><p>开放注册、邀请码注册或完全关闭。</p></div><form class="account-form" method="post" action="/admin/settings"><input type="hidden" name="csrf" value="{escape(csrf)}"><label>注册模式<select name="registration_mode">{options}</select></label><label>设置新邀请码<input name="invite_code" autocomplete="off" placeholder="至少 6 位，留空不修改"></label><small>{invite_status}</small><button class="admin-button primary" type="submit">保存注册设置</button></form></section>
+      <section class="account-settings"><div><h2>管理员密码</h2><p>修改后台与 admin 用户的登录密码。</p></div><form class="account-form" method="post" action="/admin/change-password"><input type="hidden" name="csrf" value="{escape(csrf)}"><label>当前密码<input name="current_password" type="password" autocomplete="current-password" required></label><label>新密码<input name="new_password" type="password" autocomplete="new-password" minlength="8" required></label><label>确认新密码<input name="password_confirm" type="password" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">修改管理员密码</button></form></section>
+      <section class="account-list"><div class="account-list-head"><h2>账号列表</h2><span>{len(users):02d}</span></div>{''.join(rows)}</section>
+    </main>'''
+    return admin_layout(content, "账号与注册")
 
 
 def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "") -> str:
@@ -635,7 +726,12 @@ class BlogHandler(BaseHTTPRequestHandler):
     def require_auth(self) -> str | None:
         token = self.session_token()
         if token and SESSIONS.get(token, {}).get("role") == "admin":
-            return token
+            try:
+                user = user_by_id(int(SESSIONS[token]["user_id"]))
+            except (KeyError, ValueError):
+                user = None
+            if user is not None and user["role"] == "admin" and user["is_active"]:
+                return token
         return None
 
     def require_user(self) -> str | None:
@@ -645,7 +741,8 @@ class BlogHandler(BaseHTTPRequestHandler):
                 user_id = int(SESSIONS[token]["user_id"])
             except (KeyError, ValueError):
                 return None
-            if user_by_id(user_id) is not None:
+            user = user_by_id(user_id)
+            if user is not None and user["is_active"]:
                 return token
         return None
 
@@ -811,6 +908,14 @@ class BlogHandler(BaseHTTPRequestHandler):
                 query = parse_qs(urlsplit(self.path).query)
                 self.send_html(dashboard_page(query.get("message", [""])[0], token))
             return
+        if path == "/admin/accounts":
+            token = self.require_auth()
+            if not token:
+                self.redirect("/admin")
+            else:
+                query = parse_qs(urlsplit(self.path).query)
+                self.send_html(accounts_page(query.get("message", [""])[0], query.get("error", [""])[0], token))
+            return
         if path == "/admin/new":
             token = self.require_auth()
             if not token:
@@ -855,12 +960,10 @@ class BlogHandler(BaseHTTPRequestHandler):
             self.send_html(login_page(str(error)), 413)
             return
         if path == "/admin/login":
-            if secrets.compare_digest(form.get("password", ""), ADMIN_PASSWORD):
+            admin_user = user_by_username("admin")
+            if admin_user is not None and admin_user["is_active"] and verify_password(form.get("password", ""), admin_user["password_hash"]):
                 token = secrets.token_urlsafe(32)
-                admin_user = user_by_username("admin")
-                session = {"csrf": secrets.token_urlsafe(24), "active": "1", "role": "admin"}
-                if admin_user is not None:
-                    session["user_id"] = str(admin_user["id"])
+                session = {"csrf": secrets.token_urlsafe(24), "active": "1", "role": "admin", "user_id": str(admin_user["id"])}
                 SESSIONS[token] = session
                 secure_suffix = "; Secure" if COOKIE_SECURE else ""
                 cookie = f"timeless_session={token}; Path=/; HttpOnly; SameSite=Lax{secure_suffix}"
@@ -872,7 +975,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             username = form.get("username", "").strip()
             password = form.get("password", "")
             user = user_by_username(username)
-            if user is None or not verify_password(password, user["password_hash"]):
+            if user is None or not user["is_active"] or not verify_password(password, user["password_hash"]):
                 self.send_html(user_login_page("用户名或密码不正确。"), 401)
                 return
             token = secrets.token_urlsafe(32)
@@ -882,6 +985,15 @@ class BlogHandler(BaseHTTPRequestHandler):
             self.redirect("/", cookie)
             return
         if path == "/register":
+            mode = registration_mode()
+            if mode == "closed":
+                self.send_html(register_page("目前没有开放新账号注册。"), 403)
+                return
+            if mode == "invite":
+                invite_hash = get_setting("registration_invite_hash")
+                if not invite_hash or not verify_password(form.get("invite_code", ""), invite_hash):
+                    self.send_html(register_page("邀请码不正确。"), 403)
+                    return
             username = form.get("username", "").strip()
             password = form.get("password", "")
             password_confirm = form.get("password_confirm", "")
@@ -1019,6 +1131,75 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if not self.valid_csrf(form, token):
             self.send_html(admin_layout('<main class="login-shell"><h1>请求已过期</h1><p>请返回后台重新提交。</p><a class="admin-button" href="/admin">返回后台</a></main>', "请求已过期"), 403)
+            return
+        if path == "/admin/settings":
+            mode = form.get("registration_mode", "")
+            invite_code = form.get("invite_code", "").strip()
+            if mode not in {"open", "invite", "closed"}:
+                self.send_html(accounts_page(error="注册模式无效。", token=token), 400)
+                return
+            if invite_code and len(invite_code) < 6:
+                self.send_html(accounts_page(error="邀请码至少需要 6 位。", token=token), 400)
+                return
+            if mode == "invite" and not invite_code and not get_setting("registration_invite_hash"):
+                self.send_html(accounts_page(error="启用邀请码注册前，请先设置邀请码。", token=token), 400)
+                return
+            if invite_code:
+                set_setting("registration_invite_hash", hash_password(invite_code))
+            set_setting("registration_mode", mode)
+            self.redirect("/admin/accounts?message=" + quote("注册设置已保存"))
+            return
+        if path == "/admin/change-password":
+            admin_user = user_by_id(int(SESSIONS[token]["user_id"]))
+            current_password = form.get("current_password", "")
+            new_password = form.get("new_password", "")
+            if admin_user is None or not verify_password(current_password, admin_user["password_hash"]):
+                self.send_html(accounts_page(error="当前管理员密码不正确。", token=token), 401)
+                return
+            if len(new_password) < 8:
+                self.send_html(accounts_page(error="新密码至少需要 8 位。", token=token), 400)
+                return
+            if new_password != form.get("password_confirm", ""):
+                self.send_html(accounts_page(error="两次输入的新密码不一致。", token=token), 400)
+                return
+            with db_connection() as connection:
+                connection.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(new_password), admin_user["id"]))
+            revoke_user_sessions(admin_user["id"], except_token=token)
+            self.redirect("/admin/accounts?message=" + quote("管理员密码已修改"))
+            return
+        if path in {"/admin/account/reset-password", "/admin/account/toggle", "/admin/account/delete"}:
+            try:
+                user_id = int(form.get("user_id", ""))
+            except ValueError:
+                self.send_html(accounts_page(error="账号参数无效。", token=token), 400)
+                return
+            target = user_by_id(user_id)
+            if target is None or target["role"] == "admin":
+                self.send_html(accounts_page(error="不能对管理员账号执行此操作。", token=token), 400)
+                return
+            if path == "/admin/account/reset-password":
+                new_password = form.get("new_password", "")
+                if len(new_password) < 8:
+                    self.send_html(accounts_page(error="新密码至少需要 8 位。", token=token), 400)
+                    return
+                with db_connection() as connection:
+                    connection.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(new_password), user_id))
+                revoke_user_sessions(user_id)
+                message = f"已重置 {target['username']} 的密码"
+            elif path == "/admin/account/toggle":
+                next_state = 0 if target["is_active"] else 1
+                with db_connection() as connection:
+                    connection.execute("UPDATE users SET is_active = ? WHERE id = ?", (next_state, user_id))
+                if not next_state:
+                    revoke_user_sessions(user_id)
+                message = f"已{'启用' if next_state else '停用'} {target['username']}"
+            else:
+                with db_connection() as connection:
+                    connection.execute("DELETE FROM todos WHERE user_id = ?", (user_id,))
+                    connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                revoke_user_sessions(user_id)
+                message = f"已删除 {target['username']}"
+            self.redirect("/admin/accounts?message=" + quote(message))
             return
         if path == "/admin/logout":
             SESSIONS.pop(token, None)
