@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
+from markdown_it import MarkdownIt
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -256,75 +257,115 @@ def escape(value: object) -> str:
     return html.escape(str(value or ""), quote=True)
 
 
-def inline_markdown(value: str) -> str:
-    safe = html.escape(value, quote=True)
-    safe = re.sub(
-        r"!\[([^\]]*)\]\(((?:/uploads/[a-zA-Z0-9._-]+|https?://[^\s)]+))\)",
-        r'<img src="\2" alt="\1" loading="lazy">',
-        safe,
-    )
-    safe = re.sub(r"`([^`]+)`", r"<code>\1</code>", safe)
-    safe = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", safe)
-    safe = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", safe)
-    safe = re.sub(
-        r"\[([^\]]+)\]\((https?://[^\s)]+)\)",
-        r'<a href="\2" target="_blank" rel="noreferrer">\1</a>',
-        safe,
-    )
-    return safe
+def _markdown_link_allowed(url: str) -> bool:
+    return bool(re.match(r"^(?:https?://|/uploads/|#)", url, re.IGNORECASE))
+
+
+def _markdown_slug(value: str, number: int) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-").lower()
+    return slug[:70] or f"heading-{number}"
+
+
+MARKDOWN = MarkdownIt("commonmark", {"html": False, "breaks": False, "linkify": False}).enable("table")
+MARKDOWN.validateLink = _markdown_link_allowed
+
+
+def _render_heading(tokens, index, options, env):
+    token = tokens[index]
+    env["heading_count"] = env.get("heading_count", 0) + 1
+    title = tokens[index + 1].content if index + 1 < len(tokens) else ""
+    level = token.tag[1:]
+    return f'<h{level} id="{escape(_markdown_slug(title, env["heading_count"]))}">'
+
+
+def _render_link_open(tokens, index, options, env):
+    href = tokens[index].attrGet("href") or ""
+    if not _markdown_link_allowed(href):
+        return '<span class="unsafe-link">'
+    if href.startswith(("http://", "https://")):
+        return f'<a href="{escape(href)}" target="_blank" rel="noreferrer">'
+    return f'<a href="{escape(href)}">'
+
+
+def _render_image(tokens, index, options, env):
+    token = tokens[index]
+    src = token.attrGet("src") or ""
+    if not _markdown_link_allowed(src) or src.startswith("#"):
+        return ""
+    return f'<img src="{escape(src)}" alt="{escape(token.attrGet("alt") or "")}" loading="lazy">'
+
+
+MARKDOWN.renderer.rules["heading_open"] = _render_heading
+MARKDOWN.renderer.rules["link_open"] = _render_link_open
+MARKDOWN.renderer.rules["image"] = _render_image
+
+
+def _protect_fenced_code(value: str, replacements: dict[str, str]) -> str:
+    def replace(match):
+        key = f"@@TM_CODE_{len(replacements)}@@"
+        block = match.group(0)
+        lines = block.splitlines()
+        language = re.sub(r"[^a-zA-Z0-9_-]", "", lines[0][3:].strip()) if lines else ""
+        language_attr = f' class="language-{language}"' if language else ""
+        code = "\n".join(lines[1:-1] if len(lines) > 1 and lines[-1].strip() == "```" else lines[1:])
+        replacements[key] = f'<pre><code{language_attr}>{html.escape(code, quote=False)}\n</code></pre>'
+        return key
+    return re.sub(r"(?ms)^(```[^\n]*\n.*?^```\s*)$", replace, value)
 
 
 def markdown_to_html(markdown: str) -> str:
-    output: list[str] = []
-    in_code = False
-    code_language = ""
-    list_open = False
-    for raw_line in markdown.replace("\r\n", "\n").split("\n"):
-        line = raw_line.rstrip()
-        if line.startswith("```"):
-            if in_code:
-                output.append("</code></pre>")
-                in_code = False
-            else:
-                code_language = re.sub(r"[^a-zA-Z0-9_-]", "", line[3:])
-                language_attr = f' class="language-{code_language}"' if code_language else ""
-                output.append(f"<pre><code{language_attr}>")
-                in_code = True
-            continue
-        if in_code:
-            output.append(html.escape(line, quote=False))
-            output.append("\n")
-            continue
-        if not line:
-            if list_open:
-                output.append("</ul>")
-                list_open = False
-            continue
-        if line.startswith("### "):
-            output.append(f"<h3>{inline_markdown(line[4:])}</h3>")
-        elif line.startswith("## "):
-            output.append(f"<h2>{inline_markdown(line[3:])}</h2>")
-        elif line.startswith("# "):
-            output.append(f"<h1>{inline_markdown(line[2:])}</h1>")
-        elif line.startswith("- ") or line.startswith("* "):
-            if not list_open:
-                output.append("<ul>")
-                list_open = True
-            output.append(f"<li>{inline_markdown(line[2:])}</li>")
-        elif line.startswith("> "):
-            output.append(f"<blockquote>{inline_markdown(line[2:])}</blockquote>")
-        elif re.fullmatch(r"-{3,}", line):
-            output.append("<hr>")
-        else:
-            if list_open:
-                output.append("</ul>")
-                list_open = False
-            output.append(f"<p>{inline_markdown(line)}</p>")
-    if in_code:
-        output.append("</code></pre>")
-    if list_open:
-        output.append("</ul>")
-    return "\n".join(output)
+    replacements: dict[str, str] = {}
+    text = _protect_fenced_code(markdown.replace("\r\n", "\n"), replacements)
+    footnotes: list[tuple[str, str]] = []
+    definitions: dict[str, int] = {}
+
+    def footnote_definition(match):
+        definitions[match.group(1)] = len(footnotes) + 1
+        footnotes.append((match.group(1), match.group(2).strip()))
+        return ""
+
+    text = re.sub(r"(?m)^\[\^([^\]]+)\]:\s*(.+)$", footnote_definition, text)
+
+    def footnote_reference(match):
+        label = match.group(1)
+        number = definitions.get(label)
+        if number is None:
+            return match.group(0)
+        key = f"@@TM_FOOT_{number}@@"
+        replacements[key] = f'<sup class="footnote-ref" id="fnref-{escape(label)}"><a href="#fn-{escape(label)}">[{number}]</a></sup>'
+        return key
+
+    text = re.sub(r"\[\^([^\]]+)\]", footnote_reference, text)
+
+    patterns = [
+        (r"\$\$([^$\n]+)\$\$", lambda m: f'<div class="math-block">$${html.escape(m.group(1), quote=False)}$$</div>'),
+        (r"(?<!\$)\$([^$\n]+)\$(?!\$)", lambda m: f'<span class="math-inline">${html.escape(m.group(1), quote=False)}$</span>'),
+        (r"\+\+([^+\n]+)\+\+", lambda m: f"<u>{escape(m.group(1))}</u>"),
+        (r"==([^=\n]+)==", lambda m: f"<mark>{escape(m.group(1))}</mark>"),
+        (r"~([^~\n]+)~", lambda m: f"<sub>{escape(m.group(1))}</sub>"),
+        (r"\^([^^\n]+)\^", lambda m: f"<sup>{escape(m.group(1))}</sup>"),
+    ]
+    emoji = {"smile": "😄", "heart": "❤️", "fire": "🔥", "tada": "🎉", "thinking": "🤔", "rocket": "🚀", "sob": "😭", "white_check_mark": "✅", "warning": "⚠️", "sparkles": "✨", "coffee": "☕"}
+    patterns.append((r":([a-z0-9_+-]+):", lambda m: emoji.get(m.group(1), m.group(0))))
+    for pattern, renderer in patterns:
+        def replace(match, renderer=renderer):
+            key = f"@@TM_{len(replacements)}@@"
+            replacements[key] = renderer(match)
+            return key
+        text = re.sub(pattern, replace, text, flags=re.IGNORECASE)
+
+    rendered = MARKDOWN.render(text, {})
+    rendered = re.sub(r"<li>\[( |x|X)\]\s*", lambda m: f'<li class="task-item"><input type="checkbox" disabled{" checked" if m.group(1).lower() == "x" else ""}> ', rendered)
+    for key, value in replacements.items():
+        rendered = rendered.replace(escape(key), value).replace(key, value)
+    rendered = re.sub(r"<p>\s*(<div class=\"math-block\">.*?</div>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
+    rendered = re.sub(r"<p>\s*(<pre>.*?</pre>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
+    if footnotes:
+        rendered += '<section class="footnotes"><ol>' + "".join(
+            f'<li id="fn-{escape(label)}">{markdown_to_html(note)} <a href="#fnref-{escape(label)}" class="footnote-backref">↩</a></li>'
+            for label, note in footnotes
+        ) + "</ol></section>"
+    return rendered
 
 
 def published_articles() -> list[sqlite3.Row]:
@@ -522,7 +563,7 @@ def public_article(post: sqlite3.Row) -> str:
     date = display_date(post["published_at"] or post["updated_at"])
     cover = f'<img class="article-detail-cover" src="{escape(post["cover_image"])}" alt="{title}" fetchpriority="high">' if post["cover_image"] else ""
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=18"></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=19"><script>window.MathJax={{tex:{{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}},svg:{{fontCache:'global'}}}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></head>
 <body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}<div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main><script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
 
 
@@ -536,7 +577,7 @@ def admin_css() -> str:
 
 
 def admin_layout(content: str, title: str = "后台") -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=18">{admin_css()}</head><body>{content}</body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=19">{admin_css()}</head><body>{content}</body></html>"""
 
 
 def login_page(error: str = "") -> str:
