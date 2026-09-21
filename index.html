@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="/assets/favicon.svg?v=1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=20" />
   </head>
   <body>
     <section class="landing" aria-labelledby="landing-title">
@@ -30,6 +30,8 @@
       <div class="content-layout">
       <section class="articles" aria-labelledby="articles-title">
         <div class="section-label"><span id="articles-title">最近写了什么</span><span id="article-count"><!-- ARTICLE_COUNT --></span></div>
+        <form class="site-search" method="get" action="/" role="search"><label class="sr-only" for="site-search-input">搜索文章</label><input id="site-search-input" name="q" value="<!-- SEARCH_QUERY -->" placeholder="搜索文章、标签或正文"><button type="submit" aria-label="搜索">⌕</button></form>
+        <p class="search-label"><!-- SEARCH_LABEL --></p>
         <div class="article-list">
           <!-- ARTICLES_START -->
           <article class="article-entry article-entry-featured">

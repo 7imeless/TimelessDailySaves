@@ -27,6 +27,24 @@
   const bodyButton = document.getElementById('image-upload-button');
   const bodyStatus = document.getElementById('image-upload-status');
   const content = document.getElementById('article-content');
+  const preview = document.getElementById('article-preview');
+  let previewTimer;
+  const updatePreview = async () => {
+    if (!preview) return;
+    try {
+      const response = await fetch('/admin/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'X-Requested-With': 'fetch' },
+        body: new URLSearchParams({ csrf, content: content.value }),
+      });
+      if (!response.ok) throw new Error('preview failed');
+      preview.innerHTML = (await response.json()).html || '<p class="empty-state">开始输入 Markdown...</p>';
+    } catch (_) {
+      preview.innerHTML = '<p class="empty-state">预览暂时不可用，保存后仍会正常渲染。</p>';
+    }
+  };
+  const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(updatePreview, 250); };
+  if (content && preview) { content.addEventListener('input', schedulePreview); updatePreview(); }
 
   bodyButton.addEventListener('click', () => bodyPicker.click());
   bodyPicker.addEventListener('change', async () => {

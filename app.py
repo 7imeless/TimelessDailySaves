@@ -145,6 +145,7 @@ def init_db() -> None:
                 title TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 category TEXT NOT NULL DEFAULT '随笔',
+                tags TEXT NOT NULL DEFAULT '',
                 excerpt TEXT NOT NULL DEFAULT '',
                 cover_image TEXT NOT NULL DEFAULT '',
                 content TEXT NOT NULL DEFAULT '',
@@ -158,6 +159,8 @@ def init_db() -> None:
         article_columns = {row[1] for row in connection.execute("PRAGMA table_info(articles)").fetchall()}
         if "cover_image" not in article_columns:
             connection.execute("ALTER TABLE articles ADD COLUMN cover_image TEXT NOT NULL DEFAULT ''")
+        if "tags" not in article_columns:
+            connection.execute("ALTER TABLE articles ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
         if connection.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 0:
             now = utc_now()
             connection.executemany(
@@ -404,6 +407,26 @@ def published_articles() -> list[sqlite3.Row]:
         ).fetchall()
 
 
+def filtered_articles(query: str = "") -> list[sqlite3.Row]:
+    posts = published_articles()
+    needle = query.strip().casefold()
+    if not needle:
+        return posts
+    return [post for post in posts if needle in " ".join(str(post[key] or "") for key in ("title", "excerpt", "content", "category", "tags")).casefold()]
+
+
+def article_tags(post: sqlite3.Row) -> list[str]:
+    return [tag.strip() for tag in str(post["tags"] or "").split(",") if tag.strip()]
+
+
+def article_toc(rendered: str) -> str:
+    entries = re.findall(r'<h([1-6]) id="([^"]+)">(.*?)</h\1>', rendered, flags=re.DOTALL)
+    if not entries:
+        return ""
+    items = "".join(f'<li class="toc-level-{level}"><a href="#{escape(anchor)}">{re.sub(r"<[^>]+>", "", label)}</a></li>' for level, anchor, label in entries)
+    return f'<nav class="article-toc" aria-label="文章目录"><div class="toc-title">目录</div><ol>{items}</ol></nav>'
+
+
 def all_articles() -> list[sqlite3.Row]:
     with db_connection() as connection:
         return connection.execute("SELECT * FROM articles ORDER BY updated_at DESC").fetchall()
@@ -421,12 +444,14 @@ def article_cards(posts: list[sqlite3.Row]) -> str:
             cover_class = " has-cover"
             cover = f'<a class="article-cover" href="/post/{quote(post["slug"])}" tabindex="-1" aria-hidden="true"><img src="{escape(post["cover_image"])}" alt="" loading="lazy"></a>'
         duration = max(1, round(len(post["content"]) / 500))
+        tags = "".join(f'<a class="article-tag" href="/?tag={quote(tag)}#articles">#{escape(tag)}</a>' for tag in article_tags(post))
         cards.append(
             f"""
           <article class="article-entry{featured}{cover_class}">{cover}
             <div class="article-meta"><span class="article-number">{index:02d}</span><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{display_date(post['published_at'] or post['updated_at'])}</time></div>
             <h2><a href="/post/{quote(post['slug'])}">{escape(post['title'])}</a></h2>
             <p>{escape(post['excerpt'])}</p>
+            {f'<div class="article-tags">{tags}</div>' if tags else ''}
             <span class="article-duration">{duration} min read</span>
           </article>"""
         )
@@ -566,15 +591,17 @@ def render_todo_update(user: sqlite3.Row, token: str, selected_date: date, messa
     return render_calendar(posts, todos, selected_date, selected_date) + render_todo_panel(user, token, selected_date, message=message)
 
 
-def homepage(user: sqlite3.Row | None = None, token: str | None = None, message: str = "", edit_todo: sqlite3.Row | None = None, selected_date: date | None = None, calendar_month: date | None = None) -> str:
+def homepage(user: sqlite3.Row | None = None, token: str | None = None, message: str = "", edit_todo: sqlite3.Row | None = None, selected_date: date | None = None, calendar_month: date | None = None, search: str = "", tag: str = "") -> str:
     template = INDEX_PATH.read_text(encoding="utf-8")
-    posts = published_articles()
+    posts = filtered_articles(search or tag)
     todos = todos_for_user(user["id"]) if user is not None else []
     today = datetime.now(ZoneInfo("Asia/Hong_Kong")).date()
     selected_date = selected_date or today
     calendar_month = (calendar_month or selected_date).replace(day=1)
     count_label = f"01 — {len(posts):02d}" if posts else "暂无文章"
     template = template.replace("<!-- ARTICLE_COUNT -->", count_label)
+    template = template.replace("<!-- SEARCH_QUERY -->", escape(search or tag))
+    template = template.replace("<!-- SEARCH_LABEL -->", escape(f"搜索：{search}" if search else (f"标签：{tag}" if tag else "")))
     template = template.replace("<!-- AUTH_NAV -->", auth_nav(user, token))
     template = template.replace("<!-- CALENDAR -->", render_calendar(posts, todos, calendar_month, selected_date))
     template = template.replace("<!-- TODO_PANEL -->", render_todo_panel(user, token, selected_date, edit_todo, message))
@@ -591,9 +618,11 @@ def public_article(post: sqlite3.Row) -> str:
     title = escape(post["title"])
     date = display_date(post["published_at"] or post["updated_at"])
     cover = f'<img class="article-detail-cover" src="{escape(post["cover_image"])}" alt="{title}" fetchpriority="high">' if post["cover_image"] else ""
+    rendered_content = markdown_to_html(post["content"])
+    toc = article_toc(rendered_content)
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=19"><script>window.MathJax={{tex:{{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}},svg:{{fontCache:'global'}}}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></head>
-<body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}<div class="article-content">{markdown_to_html(post['content'])}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main><script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
+<body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}{toc}<div class="article-content">{rendered_content}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main><script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
 
 
 def admin_css() -> str:
@@ -726,13 +755,14 @@ def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "
         <input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="id" value="{value('id')}">
         <label>文章标题<input name="title" value="{value('title')}" placeholder="输入一个清楚的标题" required></label>
         <div class="admin-form-grid"><label>分类<input name="category" value="{value('category', '随笔')}" placeholder="例如：工程实践"></label><label>URL 标识<input name="slug" value="{value('slug')}" placeholder="例如：my-first-post"></label></div>
+        <label>标签<input name="tags" value="{value('tags')}" placeholder="用逗号分隔，例如：Python, 系统设计"></label>
         <label>文章摘要<input name="excerpt" value="{value('excerpt')}" placeholder="显示在首页的一句话摘要"></label>
         <section class="cover-editor" aria-labelledby="cover-label">
           <span id="cover-label">文章封面</span><input id="cover-image-url" type="hidden" name="cover_image" value="{cover_url}"><input id="cover-image-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
           <div class="cover-preview" id="cover-preview"{cover_hidden}><img src="{cover_url}" alt="封面预览"></div>
           <div class="cover-actions"><button class="admin-button" id="cover-upload-button" type="button">上传封面</button><button class="admin-button" id="cover-remove-button" type="button"{cover_hidden}>移除封面</button><span class="image-upload-status" id="cover-upload-status">建议使用横向图片</span></div>
         </section>
-        <label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label>
+        <div class="editor-workspace"><label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label><section class="markdown-preview" aria-live="polite"><div class="preview-label">实时预览</div><div id="article-preview" class="article-content"><p class="empty-state">开始输入 Markdown...</p></div></section></div>
         <div class="image-upload"><input id="article-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"><button class="admin-button" id="image-upload-button" type="button">上传正文图片</button><span class="image-upload-status" id="image-upload-status">JPEG / PNG / GIF / WebP，最大 8 MB</span></div>
         <div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、图片、行内代码和代码块。<br>保存后可从文章列表打开公开页面。</div></div>
         <div class="admin-form-actions"><button class="admin-button primary" type="submit">{'保存修改' if is_editing else '保存文章'} →</button><a class="admin-button" href="/admin">取消</a></div>
@@ -881,7 +911,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             today = datetime.now(ZoneInfo("Asia/Hong_Kong")).date()
             selected_date = valid_date(query.get("todo_date", [""])[0], today)
             calendar_month = valid_month(query.get("month", [""])[0], selected_date)
-            self.send_html(homepage(user, token, query.get("message", [""])[0], selected_date=selected_date, calendar_month=calendar_month))
+            self.send_html(homepage(user, token, query.get("message", [""])[0], selected_date=selected_date, calendar_month=calendar_month, search=query.get("q", [""])[0], tag=query.get("tag", [""])[0]))
             return
         if path == "/login":
             token = self.session_token()
@@ -1202,6 +1232,9 @@ class BlogHandler(BaseHTTPRequestHandler):
         if not self.valid_csrf(form, token):
             self.send_html(admin_layout('<main class="login-shell"><h1>请求已过期</h1><p>请返回后台重新提交。</p><a class="admin-button" href="/admin">返回后台</a></main>', "请求已过期"), 403)
             return
+        if path == "/admin/preview":
+            self.send_json({"html": markdown_to_html(form.get("content", ""))})
+            return
         if path == "/admin/settings":
             mode = form.get("registration_mode", "")
             invite_code = form.get("invite_code", "").strip()
@@ -1292,6 +1325,7 @@ class BlogHandler(BaseHTTPRequestHandler):
                 self.send_html(editor_page(None, "标题和正文不能为空。", token), 400)
                 return
             category = form.get("category", "随笔").strip() or "随笔"
+            tags = ", ".join(dict.fromkeys(tag.strip() for tag in form.get("tags", "").split(",") if tag.strip()))
             excerpt = form.get("excerpt", "").strip() or content.replace("\n", " ")[:120]
             cover_image = form.get("cover_image", "").strip()
             if cover_image and not valid_uploaded_image_url(cover_image):
@@ -1304,8 +1338,8 @@ class BlogHandler(BaseHTTPRequestHandler):
                 slug = unique_slug(connection, form.get("slug", "").strip() or title, article_id)
                 if article_id is None:
                     connection.execute(
-                        "INSERT INTO articles (title, slug, category, excerpt, cover_image, content, status, created_at, updated_at, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (title, slug, category, excerpt, cover_image, content, status, now, now, now if status == "published" else None),
+                        "INSERT INTO articles (title, slug, category, tags, excerpt, cover_image, content, status, created_at, updated_at, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (title, slug, category, tags, excerpt, cover_image, content, status, now, now, now if status == "published" else None),
                     )
                 else:
                     existing = connection.execute("SELECT created_at, published_at FROM articles WHERE id = ?", (article_id,)).fetchone()
@@ -1314,8 +1348,8 @@ class BlogHandler(BaseHTTPRequestHandler):
                         return
                     published_at = existing["published_at"] or now if status == "published" else None
                     connection.execute(
-                        "UPDATE articles SET title = ?, slug = ?, category = ?, excerpt = ?, cover_image = ?, content = ?, status = ?, updated_at = ?, published_at = ? WHERE id = ?",
-                        (title, slug, category, excerpt, cover_image, content, status, now, published_at, article_id),
+                        "UPDATE articles SET title = ?, slug = ?, category = ?, tags = ?, excerpt = ?, cover_image = ?, content = ?, status = ?, updated_at = ?, published_at = ? WHERE id = ?",
+                        (title, slug, category, tags, excerpt, cover_image, content, status, now, published_at, article_id),
                     )
             self.redirect("/admin?message=" + quote("文章已保存"))
             return
