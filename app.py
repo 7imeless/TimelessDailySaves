@@ -354,6 +354,7 @@ def markdown_to_html(markdown: str) -> str:
     )
 
     patterns = [
+        (r"(?ms)^\s*\$\$\s*\n(.+?)\n\s*\$\$\s*(?:\n|$)", lambda m: f'<div class="math-block">$$\n{html.escape(m.group(1).strip(), quote=False)}\n$$</div>'),
         (r"\$\$([^$\n]+)\$\$", lambda m: f'<div class="math-block">$${html.escape(m.group(1), quote=False)}$$</div>'),
         (r"(?<!\$)\$([^$\n]+)\$(?!\$)", lambda m: f'<span class="math-inline">${html.escape(m.group(1), quote=False)}$</span>'),
         (r"\+\+([^+\n]+)\+\+", lambda m: f"<u>{escape(m.group(1))}</u>"),
@@ -375,6 +376,12 @@ def markdown_to_html(markdown: str) -> str:
     for key, value in replacements.items():
         rendered = rendered.replace(escape(key), value).replace(key, value)
     rendered = re.sub(r"<p>\s*(<div class=\"math-block\">.*?</div>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
+    rendered = re.sub(
+        r"<p>(.*?)?(<div class=\"math-block\">.*?</div>)(.*?)</p>",
+        lambda m: (f"<p>{m.group(1).strip()}</p>" if m.group(1).strip() else "") + m.group(2) + (f"<p>{m.group(3).strip()}</p>" if m.group(3).strip() else ""),
+        rendered,
+        flags=re.DOTALL,
+    )
     rendered = re.sub(r"<p>\s*(<pre>.*?</pre>)\s*</p>", r"\1", rendered, flags=re.DOTALL)
     rendered = re.sub(
         r"<p>\s*(<pre>.*?</pre>)\s*([^<].*?)</p>",
