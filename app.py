@@ -307,10 +307,10 @@ def _protect_fenced_code(value: str, replacements: dict[str, str]) -> str:
         lines = block.splitlines()
         language = re.sub(r"[^a-zA-Z0-9_-]", "", lines[0][3:].strip()) if lines else ""
         language_attr = f' class="language-{language}"' if language else ""
-        code = "\n".join(lines[1:-1] if len(lines) > 1 and lines[-1].strip() == "```" else lines[1:])
+        code = "\n".join(lines[1:-1] if len(lines) > 1 and lines[-1].strip() in {"```", "~~~"} else lines[1:])
         replacements[key] = f'<pre><code{language_attr}>{html.escape(code, quote=False)}\n</code></pre>'
         return key
-    return re.sub(r"(?ms)^(```[^\n]*\n.*?^```\s*)$", replace, value)
+    return re.sub(r"(?ms)^((?:```|~~~)[^\n]*\n.*?^(?:```|~~~)\s*)$", replace, value)
 
 
 def markdown_to_html(markdown: str) -> str:
@@ -336,6 +336,22 @@ def markdown_to_html(markdown: str) -> str:
         return key
 
     text = re.sub(r"\[\^([^\]]+)\]", footnote_reference, text)
+
+    for pattern, renderer in [
+        (r"\\\[([\s\S]+?)\\\]", lambda m: f'<div class="math-block">\\[{html.escape(m.group(1), quote=False)}\\]</div>'),
+        (r"\\\(([^\n]+?)\\\)", lambda m: f'<span class="math-inline">\\({html.escape(m.group(1), quote=False)}\\)</span>'),
+    ]:
+        def replace_math(match, renderer=renderer):
+            key = f"@@TM_{len(replacements)}@@"
+            replacements[key] = renderer(match)
+            return key
+        text = re.sub(pattern, replace_math, text)
+
+    text = re.sub(
+        r"(?<![\w\"'>)=([\]])(https?://[^\s<>]+)",
+        lambda m: f"[{m.group(1)}]({m.group(1).rstrip('.,;:!?')})",
+        text,
+    )
 
     patterns = [
         (r"\$\$([^$\n]+)\$\$", lambda m: f'<div class="math-block">$${html.escape(m.group(1), quote=False)}$$</div>'),
