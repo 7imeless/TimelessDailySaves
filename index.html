@@ -82,6 +82,27 @@
     </main>
     <script>
       (() => {
+        const searchForm = document.querySelector('.site-search');
+        const searchInput = document.getElementById('site-search-input');
+        const articleList = document.querySelector('.article-list');
+        const articleCount = document.getElementById('article-count');
+        const searchLabel = document.querySelector('.search-label');
+        let searchTimer;
+        const runSearch = async () => {
+          if (!searchForm || !articleList) return;
+          const query = searchInput.value.trim();
+          try {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error('search failed');
+            const result = await response.json();
+            articleList.innerHTML = result.cards;
+            articleCount.textContent = result.count;
+            searchLabel.textContent = result.label;
+            window.history.replaceState({}, '', query ? `/?q=${encodeURIComponent(query)}#articles` : '/#articles');
+          } catch (_) { searchForm.submit(); }
+        };
+        searchForm?.addEventListener('submit', (event) => { event.preventDefault(); runSearch(); });
+        searchInput?.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 260); });
         const calendarPanel = document.querySelector('.calendar-panel');
         if (!calendarPanel) return;
         const scheduleNotice = (root) => {

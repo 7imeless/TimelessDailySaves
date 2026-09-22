@@ -415,6 +415,12 @@ def filtered_articles(query: str = "") -> list[sqlite3.Row]:
     return [post for post in posts if needle in " ".join(str(post[key] or "") for key in ("title", "excerpt", "content", "category", "tags")).casefold()]
 
 
+def search_result(query: str) -> dict[str, str]:
+    posts = filtered_articles(query)
+    label = f"搜索：{query}" if query.strip() else ""
+    return {"cards": article_cards(posts), "count": f"01 — {len(posts):02d}" if posts else "暂无文章", "label": label}
+
+
 def article_tags(post: sqlite3.Row) -> list[str]:
     return [tag.strip() for tag in str(post["tags"] or "").split(",") if tag.strip()]
 
@@ -700,8 +706,8 @@ def dashboard_page(message: str = "", token: str = "") -> str:
     csrf = csrf_for(token) if token else ""
     rows: list[str] = []
     for index, post in enumerate(all_articles(), start=1):
-        status_class = "published" if post["status"] == "published" else ""
-        status_text = "已发布" if post["status"] == "published" else "草稿"
+        status_class = "published" if post["status"] == "published" else ("private" if post["status"] == "private" else "")
+        status_text = "已发布" if post["status"] == "published" else ("私密" if post["status"] == "private" else "草稿")
         rows.append(
             f"""<div class="admin-row"><span class="index">{index:02d}</span><div><h2>{escape(post['title'])}</h2><p>{escape(post['category'])} · /post/{escape(post['slug'])}</p></div><span class="admin-status {status_class}">{status_text}</span><time>{display_date(post['updated_at'])}</time><a class="edit-link" href="/admin/edit?id={post['id']}">编辑 ↗</a></div>"""
         )
@@ -761,7 +767,8 @@ def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "
     value = lambda key, default="": escape(post[key] if post else default)
     message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
     selected_published = " selected" if post and post["status"] == "published" else ""
-    selected_draft = " selected" if not post or post["status"] != "published" else ""
+    selected_private = " selected" if post and post["status"] == "private" else ""
+    selected_draft = " selected" if not post or post["status"] == "draft" else ""
     delete_form = (
         f'<form method="post" action="/admin/delete" onsubmit="return confirm(\'确定删除这篇文章吗？\')"><input type="hidden" name="csrf" value="{escape(csrf)}"><input type="hidden" name="id" value="{post["id"]}"><button class="admin-button danger" type="submit">删除文章</button></form>'
         if is_editing
@@ -785,7 +792,7 @@ def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "
         </section>
         <label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label>
         <div class="image-upload"><input id="article-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"><button class="admin-button" id="image-upload-button" type="button">上传正文图片</button><span class="image-upload-status" id="image-upload-status">JPEG / PNG / GIF / WebP，最大 8 MB</span></div>
-        <div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、图片、行内代码和代码块。<br>保存后可从文章列表打开公开页面。</div></div>
+        <div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option><option value="private"{selected_private}>私密文章（仅管理员）</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、图片、行内代码和代码块。<br>私密文章只有管理员登录后可访问。</div></div>
         <div class="admin-form-actions"><button class="admin-button primary" type="submit">{'保存修改' if is_editing else '保存文章'} →</button><a class="admin-button" href="/admin">取消</a></div>
       </form>
     </main><script src="/admin.js?v=1"></script>"""
@@ -937,6 +944,10 @@ class BlogHandler(BaseHTTPRequestHandler):
         if path == "/archive":
             self.send_html(archive_page())
             return
+        if path == "/search":
+            query = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
+            self.send_json(search_result(query))
+            return
         if path == "/login":
             token = self.session_token()
             if token and SESSIONS.get(token, {}).get("role") in {"user", "admin"}:
@@ -1064,8 +1075,10 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if path.startswith("/post/"):
             slug = path.removeprefix("/post/")
+            token = self.session_token()
+            is_admin = bool(token and SESSIONS.get(token, {}).get("role") == "admin")
             with db_connection() as connection:
-                post = connection.execute("SELECT * FROM articles WHERE slug = ? AND status = 'published'", (slug,)).fetchone()
+                post = connection.execute("SELECT * FROM articles WHERE slug = ? AND (status = 'published' OR (status = 'private' AND ?))", (slug, int(is_admin))).fetchone()
             if post is None:
                 self.send_error(404)
             else:
@@ -1351,7 +1364,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             cover_image = form.get("cover_image", "").strip()
             if cover_image and not valid_uploaded_image_url(cover_image):
                 cover_image = ""
-            status = "published" if form.get("status") == "published" else "draft"
+            status = form.get("status") if form.get("status") in {"draft", "published", "private"} else "draft"
             now = utc_now()
             raw_id = form.get("id", "").strip()
             with db_connection() as connection:
@@ -1360,14 +1373,14 @@ class BlogHandler(BaseHTTPRequestHandler):
                 if article_id is None:
                     connection.execute(
                         "INSERT INTO articles (title, slug, category, tags, excerpt, cover_image, content, status, created_at, updated_at, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (title, slug, category, tags, excerpt, cover_image, content, status, now, now, now if status == "published" else None),
+                        (title, slug, category, tags, excerpt, cover_image, content, status, now, now, now if status in {"published", "private"} else None),
                     )
                 else:
                     existing = connection.execute("SELECT created_at, published_at FROM articles WHERE id = ?", (article_id,)).fetchone()
                     if existing is None:
                         self.send_html(editor_page(None, "找不到这篇文章。", token), 404)
                         return
-                    published_at = existing["published_at"] or now if status == "published" else None
+                    published_at = existing["published_at"] or now if status in {"published", "private"} else None
                     connection.execute(
                         "UPDATE articles SET title = ?, slug = ?, category = ?, tags = ?, excerpt = ?, cover_image = ?, content = ?, status = ?, updated_at = ?, published_at = ? WHERE id = ?",
                         (title, slug, category, tags, excerpt, cover_image, content, status, now, published_at, article_id),
