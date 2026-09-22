@@ -400,23 +400,24 @@ def markdown_to_html(markdown: str) -> str:
     return rendered
 
 
-def published_articles() -> list[sqlite3.Row]:
+def published_articles(include_private: bool = False) -> list[sqlite3.Row]:
     with db_connection() as connection:
+        status_clause = "status IN ('published', 'private')" if include_private else "status = 'published'"
         return connection.execute(
-            "SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC, updated_at DESC"
+            f"SELECT * FROM articles WHERE {status_clause} ORDER BY published_at DESC, updated_at DESC"
         ).fetchall()
 
 
-def filtered_articles(query: str = "") -> list[sqlite3.Row]:
-    posts = published_articles()
+def filtered_articles(query: str = "", include_private: bool = False) -> list[sqlite3.Row]:
+    posts = published_articles(include_private)
     needle = query.strip().casefold()
     if not needle:
         return posts
     return [post for post in posts if needle in " ".join(str(post[key] or "") for key in ("title", "excerpt", "content", "category", "tags")).casefold()]
 
 
-def search_result(query: str) -> dict[str, str]:
-    posts = filtered_articles(query)
+def search_result(query: str, include_private: bool = False) -> dict[str, str]:
+    posts = filtered_articles(query, include_private)
     label = f"搜索：{query}" if query.strip() else ""
     return {"cards": article_cards(posts), "count": f"01 — {len(posts):02d}" if posts else "暂无文章", "label": label}
 
@@ -620,7 +621,7 @@ def render_todo_update(user: sqlite3.Row, token: str, selected_date: date, messa
 
 def homepage(user: sqlite3.Row | None = None, token: str | None = None, message: str = "", edit_todo: sqlite3.Row | None = None, selected_date: date | None = None, calendar_month: date | None = None, search: str = "", tag: str = "") -> str:
     template = INDEX_PATH.read_text(encoding="utf-8")
-    posts = filtered_articles(search or tag)
+    posts = filtered_articles(search or tag, bool(user and user["role"] == "admin"))
     todos = todos_for_user(user["id"]) if user is not None else []
     today = datetime.now(ZoneInfo("Asia/Hong_Kong")).date()
     selected_date = selected_date or today
@@ -946,7 +947,9 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if path == "/search":
             query = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
-            self.send_json(search_result(query))
+            token = self.session_token()
+            include_private = bool(token and SESSIONS.get(token, {}).get("role") == "admin")
+            self.send_json(search_result(query, include_private))
             return
         if path == "/login":
             token = self.session_token()
