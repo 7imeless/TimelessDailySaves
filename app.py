@@ -427,6 +427,27 @@ def article_toc(rendered: str) -> str:
     return f'<nav class="article-toc" aria-label="文章目录"><div class="toc-title">目录</div><ol>{items}</ol></nav>'
 
 
+def archive_page() -> str:
+    posts = published_articles()
+    groups: dict[str, dict[str, list[sqlite3.Row]]] = {}
+    for post in posts:
+        stamp = post["published_at"] or post["updated_at"]
+        year, month = stamp[:4], stamp[:7]
+        groups.setdefault(year, {}).setdefault(month, []).append(post)
+    sections: list[str] = []
+    for year in sorted(groups, reverse=True):
+        months: list[str] = []
+        for month in sorted(groups[year], reverse=True):
+            entries = []
+            for post in groups[year][month]:
+                tags = "".join(f'<span class="archive-tag">#{escape(tag)}</span>' for tag in article_tags(post))
+                entries.append(f'<li class="archive-entry"><time>{display_date(post["published_at"] or post["updated_at"])}</time><a href="/post/{quote(post["slug"])}">{escape(post["title"])}</a><span class="archive-meta">{escape(post["category"])} {tags}</span></li>')
+            months.append(f'<section class="archive-month"><h2>{escape(month.replace("-", " / "))}</h2><ul>{"".join(entries)}</ul></section>')
+        sections.append(f'<section class="archive-year"><h1>{escape(year)}</h1>{"".join(months)}</section>')
+    body = "".join(sections) or '<p class="empty-state">还没有已发布的文章。</p>'
+    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>文章归档 / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=21"></head><body><main class="page-shell archive-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><a class="article-back" href="/">← 返回首页</a></header><section class="archive-shell"><div class="eyebrow">ARCHIVE / {len(posts):02d} ARTICLES</div><h1>文章归档</h1><p class="archive-lead">按时间整理写下的内容。</p>{body}</section><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main></body></html>'''
+
+
 def all_articles() -> list[sqlite3.Row]:
     with db_connection() as connection:
         return connection.execute("SELECT * FROM articles ORDER BY updated_at DESC").fetchall()
@@ -762,7 +783,7 @@ def editor_page(post: sqlite3.Row | None = None, error: str = "", token: str = "
           <div class="cover-preview" id="cover-preview"{cover_hidden}><img src="{cover_url}" alt="封面预览"></div>
           <div class="cover-actions"><button class="admin-button" id="cover-upload-button" type="button">上传封面</button><button class="admin-button" id="cover-remove-button" type="button"{cover_hidden}>移除封面</button><span class="image-upload-status" id="cover-upload-status">建议使用横向图片</span></div>
         </section>
-        <div class="editor-workspace"><label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label><section class="markdown-preview" aria-live="polite"><div class="preview-label">实时预览</div><div id="article-preview" class="article-content"><p class="empty-state">开始输入 Markdown...</p></div></section></div>
+        <label>正文（Markdown）<textarea id="article-content" name="content" rows="23" placeholder="# 文章标题\n\n从这里开始写..." required>{value('content')}</textarea></label>
         <div class="image-upload"><input id="article-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp"><button class="admin-button" id="image-upload-button" type="button">上传正文图片</button><span class="image-upload-status" id="image-upload-status">JPEG / PNG / GIF / WebP，最大 8 MB</span></div>
         <div class="admin-form-grid"><label>发布状态<select name="status"><option value="draft"{selected_draft}>保存为草稿</option><option value="published"{selected_published}>立即发布</option></select></label><div class="admin-note">支持标题、列表、引用、粗体、图片、行内代码和代码块。<br>保存后可从文章列表打开公开页面。</div></div>
         <div class="admin-form-actions"><button class="admin-button primary" type="submit">{'保存修改' if is_editing else '保存文章'} →</button><a class="admin-button" href="/admin">取消</a></div>
@@ -912,6 +933,9 @@ class BlogHandler(BaseHTTPRequestHandler):
             selected_date = valid_date(query.get("todo_date", [""])[0], today)
             calendar_month = valid_month(query.get("month", [""])[0], selected_date)
             self.send_html(homepage(user, token, query.get("message", [""])[0], selected_date=selected_date, calendar_month=calendar_month, search=query.get("q", [""])[0], tag=query.get("tag", [""])[0]))
+            return
+        if path == "/archive":
+            self.send_html(archive_page())
             return
         if path == "/login":
             token = self.session_token()
@@ -1231,9 +1255,6 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if not self.valid_csrf(form, token):
             self.send_html(admin_layout('<main class="login-shell"><h1>请求已过期</h1><p>请返回后台重新提交。</p><a class="admin-button" href="/admin">返回后台</a></main>', "请求已过期"), 403)
-            return
-        if path == "/admin/preview":
-            self.send_json({"html": markdown_to_html(form.get("content", ""))})
             return
         if path == "/admin/settings":
             mode = form.get("registration_mode", "")
