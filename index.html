@@ -24,7 +24,7 @@
     <main class="page-shell">
       <header class="site-header">
         <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Timeless日常存档</span></div>
-        <div class="header-tools"><span class="header-year">2026</span><span id="auth-nav"><!-- AUTH_NAV --></span></div>
+        <div class="header-tools"><span class="header-year">2026</span><button class="theme-toggle" type="button" data-theme-toggle aria-label="切换浅色主题" title="切换浅色主题"><span aria-hidden="true">☼</span><span data-theme-label>浅色</span></button><span id="auth-nav"><!-- AUTH_NAV --></span></div>
       </header>
 
       <div class="content-layout">
@@ -204,6 +204,22 @@
             if (submitter && submitter.isConnected) submitter.disabled = false;
           }
         });
+      })();
+    </script>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const button = document.querySelector('[data-theme-toggle]');
+        const label = button?.querySelector('[data-theme-label]');
+        const saved = localStorage.getItem('timeless-theme');
+        if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
+        const update = () => {
+          const light = root.dataset.theme === 'light';
+          if (button) { button.setAttribute('aria-label', light ? '切换深色主题' : '切换浅色主题'); button.title = light ? '切换深色主题' : '切换浅色主题'; }
+          if (label) label.textContent = light ? '深色' : '浅色';
+        };
+        update();
+        button?.addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('timeless-theme', root.dataset.theme); update(); });
       })();
     </script>
   </body>
