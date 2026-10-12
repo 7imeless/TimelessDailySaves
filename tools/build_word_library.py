@@ -9,34 +9,39 @@ import re
 import sqlite3
 
 
-def build(source, output, limit):
+def build(source, output, limit, required_tag=None, name="英语高频基础词库"):
     def candidates():
         with source.open(encoding="utf-8-sig", newline="") as stream:
             for row in csv.DictReader(stream):
                 word = row["word"].strip()
-                if not re.fullmatch(r"[a-z]+(?:[-'][a-z]+)*", word) or not row["translation"].strip():
+                if not word or not row["translation"].strip():
+                    continue
+                if not required_tag and not re.fullmatch(r"[a-z]+(?:[-'][a-z]+)*", word):
+                    continue
+                if required_tag and required_tag not in row.get("tag", "").split():
                     continue
                 rank = int(row.get("frq") or 0) or int(row.get("bnc") or 0)
-                if rank <= 0:
+                if rank <= 0 and not required_tag:
                     continue
                 yield rank, word, row
-    selected = heapq.nsmallest(limit, candidates(), key=lambda x: (x[0], x[1]))
+    selected = heapq.nsmallest(limit, candidates(), key=lambda x: (x[0] if x[0] > 0 else float('inf'), x[1]))
     words = []
     seen = set()
     for rank, word, row in selected:
-        if word in seen:
+        if word.casefold() in seen:
             continue
-        seen.add(word)
+        seen.add(word.casefold())
         words.append({"word": word, "phonetic": row["phonetic"],
                       "translation": row["translation"].replace("\\n", "\n"),
                       "definition": row["definition"].replace("\\n", "\n"),
-                      "tags": row["tag"].split(), "frequency_rank": rank,
-                      "frequency_source": "frq" if int(row.get("frq") or 0) else "bnc",
+                      "tags": row["tag"].split(), "frequency_rank": rank or None,
+                      "frequency_source": ("frq" if int(row.get("frq") or 0) else "bnc") if rank else None,
                       "exchange": row["exchange"], "source": "ECDICT"})
-    payload = {"schema_version": 1, "name": "英语高频基础词库",
+    payload = {"schema_version": 1, "name": name,
                "source_url": "https://github.com/skywind3000/ECDICT",
                "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-               "selection": "Lowercase English entries with translations; frq rank, falling back to bnc. Not CEFR levels or word families.",
+               "selection": "Exact ECDICT tag filter with nonempty translations (including proper nouns and unranked entries)." if required_tag else "Lowercase English entries with translations; frq rank, falling back to bnc. Not CEFR levels or word families.",
+               "required_tag": required_tag,
                "license": "MIT (upstream repository declaration)", "count": len(words), "words": words}
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
@@ -63,9 +68,11 @@ if __name__ == '__main__':
     parser.add_argument('--json', type=Path, default=Path('data/english-core.json'))
     parser.add_argument('--database', type=Path, default=Path('words.db'))
     parser.add_argument('--limit', type=int, default=2000)
+    parser.add_argument('--tag', help='Require an exact ECDICT tag, for example cet6')
+    parser.add_argument('--name', default='英语高频基础词库')
     args = parser.parse_args()
     if args.limit < 1:
         parser.error('--limit must be positive')
-    payload = build(args.csv, args.json, args.limit) if args.csv else json.loads(args.json.read_text(encoding='utf-8'))
+    payload = build(args.csv, args.json, args.limit, args.tag, args.name) if args.csv else json.loads(args.json.read_text(encoding='utf-8'))
     import_sqlite(payload, args.database)
     print(f"Imported {payload['count']} words into {args.database}")

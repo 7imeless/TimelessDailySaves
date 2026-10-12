@@ -12,6 +12,24 @@
 
 ## 导入
 
+### 六级词库
+
+`data/english-cet6.json` 收录 ECDICT 明确带 `cet6` 标签且有中文释义的全部 5,407 条词条，包括专有名词、缩写和没有词频的词条。保留原始拼写，不因缺失词频而丢弃考试词。该集合依据 ECDICT 标签，不声称是官方最新六级大纲；不自动并入仅有 `cet4` 标签的词汇。
+
+独立导入，保留原高频库：
+
+```bash
+python tools/build_word_library.py --json data/english-cet6.json --database words-cet6.db
+```
+
+从原始 CSV 重建：
+
+```bash
+python tools/build_word_library.py --csv /path/to/ecdict.csv --tag cet6 --name "大学英语六级词库" --limit 10000 --json data/english-cet6.json --database words-cet6.db
+```
+
+### 高频词库
+
 ```bash
 python tools/build_word_library.py
 ```
