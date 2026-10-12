@@ -16,12 +16,14 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
 from markdown_it import MarkdownIt
+import word_learning
 
 
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_PATH = BASE_DIR / "index.html"
 STYLES_PATH = BASE_DIR / "styles.css"
 ADMIN_JS_PATH = BASE_DIR / "admin.js"
+WORDS_DB_PATH = Path(os.environ.get("TIMELESS_WORDS_DB", str(BASE_DIR / "words-cet6.db")))
 ASSETS_DIR = BASE_DIR / "assets"
 UPLOADS_DIR = BASE_DIR / "uploads"
 FAVICON_PATH = ASSETS_DIR / "favicon.svg"
@@ -105,6 +107,7 @@ def db_connection() -> sqlite3.Connection:
 
 def init_db() -> None:
     with db_connection() as connection:
+        word_learning.initialize(connection)
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -945,6 +948,29 @@ class BlogHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
+        if path == "/words.js":
+            self.send_file(BASE_DIR / "words.js", "text/javascript; charset=utf-8")
+            return
+        if path == "/words" or path in ("/words/api/today", "/words/api/library"):
+            token = self.require_user()
+            if path == "/words":
+                self.send_html(admin_layout(word_learning.page(escape(csrf_for(token)) if token else "", bool(token)), "六级单词学习"))
+                return
+            if not WORDS_DB_PATH.exists():
+                self.send_json({"error": "词库尚未就绪"}, 503)
+                return
+            query = parse_qs(urlsplit(self.path).query)
+            if path.endswith("library"):
+                try:
+                    page = max(1, min(1000, int(query.get("page", ["1"])[0])))
+                except ValueError:
+                    self.send_json({"error": "无效页码"}, 400)
+                    return
+                self.send_json(word_learning.catalog(WORDS_DB_PATH, query.get("q", [""])[0][:100], page))
+            else:
+                with db_connection() as connection:
+                    self.send_json(word_learning.today(WORDS_DB_PATH, connection, int(SESSIONS[token]["user_id"]) if token else None))
+            return
         if path in ("/", "/index.html"):
             token = self.session_token()
             user = None
@@ -1115,6 +1141,22 @@ class BlogHandler(BaseHTTPRequestHandler):
             form = self.read_form()
         except ValueError as error:
             self.send_html(login_page(str(error)), 413)
+            return
+        if path == "/words/api/review":
+            token = self.require_user()
+            if not token:
+                self.send_json({"error": "请登录后保存进度"}, 401)
+                return
+            if not self.valid_csrf(form, token):
+                self.send_json({"error": "登录已过期，请刷新后重试"}, 403)
+                return
+            try:
+                with db_connection() as connection:
+                    result = word_learning.review(WORDS_DB_PATH, connection, int(SESSIONS[token]["user_id"]), form)
+            except (ValueError, sqlite3.IntegrityError):
+                self.send_json({"error": "复习记录无效，请刷新后重试"}, 400)
+                return
+            self.send_json(result)
             return
         if path == "/admin/login":
             admin_user = user_by_username("admin")
@@ -1353,6 +1395,8 @@ class BlogHandler(BaseHTTPRequestHandler):
             else:
                 with db_connection() as connection:
                     connection.execute("DELETE FROM todos WHERE user_id = ?", (user_id,))
+                    connection.execute("DELETE FROM word_progress WHERE user_id = ?", (user_id,))
+                    connection.execute("DELETE FROM word_reviews WHERE user_id = ?", (user_id,))
                     connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 revoke_user_sessions(user_id)
                 message = f"已删除 {target['username']}"
