@@ -227,4 +227,22 @@ body > .theme-toggle { position: fixed; z-index: 30; top: 20px; right: 24px; }
   .article-back { white-space: nowrap; }
 }
 
+.money-shell { width: min(1050px, calc(100% - 48px)); margin: auto; padding: 30px 0 80px; }
+.money-nav { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 12px 0 24px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.money-nav span { margin-left: auto; color: var(--muted); overflow-wrap: anywhere; }
+.money-heading { padding: 48px 0 20px; }.money-heading h1 { font-size: clamp(32px, 6vw, 52px); margin: 10px 0; }.money-heading > p:last-child { color: var(--muted); }
+.money-filters, .money-form-actions, .money-pagination { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.money-shell label { display: grid; gap: 8px; color: var(--muted); font-size: 13px; }
+.money-shell input, .money-shell select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); padding: 10px 12px; background: var(--surface); color: var(--text); font: 16px var(--sans); }
+.money-shell :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.money-shell .admin-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+.money-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin: 24px 0 12px; }.money-stats > div { display: grid; gap: 14px; padding: 22px; background: var(--surface); border: 1px solid var(--line); }.money-stats span { font-size: 13px; color: var(--muted); }.money-stats strong { font: 500 clamp(18px, 3vw, 30px) var(--mono); overflow-wrap: anywhere; }
+.money-hint { color: var(--muted); font-size: 12px; line-height: 1.7; }.money-message { color: var(--accent); min-height: 18px; }
+.money-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }.money-panel { background: var(--surface); border: 1px solid var(--line); padding: 24px; min-width: 0; }.money-panel h2 { font-size: 19px; margin: 0 0 22px; }.money-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }.money-wide { grid-column: 1/-1; }
+.money-category { display: grid; grid-template-columns: 60px minmax(25px,1fr); gap: 8px; margin: 18px 0; font-size: 13px; }.money-category meter { width: 100%; accent-color: var(--accent); }.money-category > span:last-child { grid-column: 2; color: var(--muted); overflow-wrap: anywhere; }
+.money-list { margin-top: 24px; }.money-entry { display: flex; justify-content: space-between; gap: 18px; padding: 18px 0; border-top: 1px solid var(--line); }.money-entry > div:first-child { min-width: 0; }.money-entry time { display: block; margin: 8px 0; color: var(--muted); font-size: 12px; }.money-entry p { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }.money-entry-actions { flex-shrink: 0; text-align: right; }.money-entry-actions > div { display: flex; align-items: center; justify-content: end; gap: 14px; margin-top: 10px; }.money-entry-actions form { margin: 0; }.money-entry-actions a, .money-entry-actions button { display: inline-flex; align-items: center; min-height: 44px; background: transparent; border: 0; color: var(--muted); font: 13px var(--sans); cursor: pointer; }.money-income { color: var(--accent); }.money-expense { color: var(--text); }.money-pagination { margin-top: 16px; }
+@media(max-width:700px) {
+  .site-header { height: auto; min-height: 78px; flex-wrap: wrap; gap: 12px; padding: 16px 0; }.header-tools { flex-wrap: wrap; gap: 12px; }
+  .money-shell { width: calc(100% - 28px); padding-top: 24px; }.money-nav { padding-top: 28px; gap: 12px; }.money-heading { padding-top: 30px; }.money-layout { grid-template-columns: 1fr; }.money-stats { gap: 6px; }.money-stats > div { padding: 12px 8px; }.money-stats strong { font-size: 16px; }.money-panel { padding: 18px 14px; }.money-filters > label { flex: 1; min-width: 130px; }.money-entry { flex-wrap: wrap; }.money-entry-actions { margin-left: auto; }
+}
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

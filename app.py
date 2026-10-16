@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
 from markdown_it import MarkdownIt
 import word_learning
+import money
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -108,6 +109,7 @@ def db_connection() -> sqlite3.Connection:
 def init_db() -> None:
     with db_connection() as connection:
         word_learning.initialize(connection)
+        money.initialize(connection)
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -472,7 +474,7 @@ def archive_page() -> str:
             months.append(f'<section class="archive-month"><h2>{escape(month.replace("-", " / "))}</h2><ul>{"".join(entries)}</ul></section>')
         sections.append(f'<section class="archive-year"><h1>{escape(year)}</h1>{"".join(months)}</section>')
     body = "".join(sections) or '<p class="empty-state">还没有已发布的文章。</p>'
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>文章归档 / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=22"></head><body><main class="page-shell archive-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><div class="header-tools">{THEME_BUTTON}<a class="article-back" href="/">← 返回首页</a></div></header><section class="archive-shell"><div class="eyebrow">ARCHIVE / {len(posts):02d} ARTICLES</div><h1>文章归档</h1><p class="archive-lead">按时间整理写下的内容。</p>{body}</section><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main>{THEME_SCRIPT}</body></html>'''
+    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>文章归档 / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=23"></head><body><main class="page-shell archive-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><div class="header-tools">{THEME_BUTTON}<a class="article-back" href="/">← 返回首页</a></div></header><section class="archive-shell"><div class="eyebrow">ARCHIVE / {len(posts):02d} ARTICLES</div><h1>文章归档</h1><p class="archive-lead">按时间整理写下的内容。</p>{body}</section><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main>{THEME_SCRIPT}</body></html>'''
 
 
 def all_articles() -> list[sqlite3.Row]:
@@ -669,7 +671,7 @@ def public_article(post: sqlite3.Row) -> str:
     rendered_content = markdown_to_html(post["content"])
     toc = article_toc(rendered_content)
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=22"><script>window.MathJax={{tex:{{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}},svg:{{fontCache:'global'}}}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=23"><script>window.MathJax={{tex:{{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}},svg:{{fontCache:'global'}}}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></head>
 <body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><div class="header-tools">{THEME_BUTTON}<a class="article-back" href="/">← 返回首页</a></div></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}{toc}<div class="article-content">{rendered_content}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main>{THEME_SCRIPT}<script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
 
 
@@ -683,7 +685,7 @@ def admin_css() -> str:
 
 
 def admin_layout(content: str, title: str = "后台") -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=22">{admin_css()}</head><body>{THEME_BUTTON}{content}{THEME_SCRIPT}</body></html>"""
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{escape(title)} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=23">{admin_css()}</head><body>{THEME_BUTTON}{content}{THEME_SCRIPT}</body></html>"""
 
 
 def login_page(error: str = "") -> str:
@@ -948,6 +950,32 @@ class BlogHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
+        if path == "/money.js":
+            self.send_file(BASE_DIR / "money.js", "text/javascript; charset=utf-8")
+            return
+        if path in ("/money", "/money/export"):
+            token = self.require_user()
+            if not token:
+                self.redirect("/login")
+                return
+            user_id = int(SESSIONS[token]["user_id"])
+            query = parse_qs(urlsplit(self.path).query)
+            try:
+                with db_connection() as connection:
+                    if path == "/money/export":
+                        month, content = money.export_csv(connection, user_id, query)
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/csv; charset=utf-8")
+                        self.send_header("Content-Disposition", f'attachment; filename="ledger-{month}.csv"')
+                        self.send_header("Content-Length", str(len(content)))
+                        self.send_header("Cache-Control", "no-store")
+                        self.end_headers()
+                        self.wfile.write(content)
+                    else:
+                        self.send_html(admin_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), query, query.get("message", [""])[0]), "个人账本"))
+            except ValueError as error:
+                self.send_html(admin_layout(f'<main class="money-shell"><p>{escape(error)}</p><a href="/money">返回账本</a></main>', "账本"), 400)
+            return
         if path == "/words.js":
             self.send_file(BASE_DIR / "words.js", "text/javascript; charset=utf-8")
             return
@@ -1142,6 +1170,27 @@ class BlogHandler(BaseHTTPRequestHandler):
             form = self.read_form()
         except ValueError as error:
             self.send_html(login_page(str(error)), 413)
+            return
+        if path in ("/money/save", "/money/delete"):
+            token = self.require_user()
+            if not token:
+                self.redirect("/login")
+                return
+            if not self.valid_csrf(form, token):
+                self.send_html(admin_layout('<main class="money-shell"><p>请求已过期，请刷新账本后重试。</p><a href="/money">返回账本</a></main>', "账本"), 403)
+                return
+            user_id = int(SESSIONS[token]["user_id"])
+            try:
+                with db_connection() as connection:
+                    if path.endswith("save"):
+                        month = money.save(connection, user_id, form)
+                    else:
+                        money.delete(connection, user_id, form)
+                        month = form.get("month", "")
+                self.redirect("/money?" + "month=" + quote(month) + "&message=" + quote("记录已保存" if path.endswith("save") else "记录已删除"))
+            except ValueError as error:
+                with db_connection() as connection:
+                    self.send_html(admin_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), {}, str(error), form if path.endswith("save") else None), "个人账本"), 400)
             return
         if path == "/words/api/review":
             token = self.require_user()
@@ -1398,6 +1447,7 @@ class BlogHandler(BaseHTTPRequestHandler):
                     connection.execute("DELETE FROM todos WHERE user_id = ?", (user_id,))
                     connection.execute("DELETE FROM word_progress WHERE user_id = ?", (user_id,))
                     connection.execute("DELETE FROM word_reviews WHERE user_id = ?", (user_id,))
+                    connection.execute("DELETE FROM money_entries WHERE user_id = ?", (user_id,))
                     connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 revoke_user_sessions(user_id)
                 message = f"已删除 {target['username']}"
