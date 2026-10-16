@@ -1,5 +1,6 @@
 """Small CET6 learning service, reusing the site's connection and account system."""
 import json
+from html import escape
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -113,10 +114,11 @@ def review(path, connection, user_id, form):
     return {'due_at': due_at, 'rating': rating, 'correct': correct}
 
 
-def page(csrf, logged_in):
+def page(csrf, logged_in, username=''):
     notice = '进度保存到你的账号，可跨设备复习。' if logged_in else '游客体验：本次练习不保存。登录后记录学习进度。'
+    account_nav = f'<span class="words-account">已登录 · {escape(username)}</span>' if logged_in else '<a href="/login">账号登录</a>'
     return f'''<main class="words-shell" data-csrf="{csrf}" data-logged-in="{str(logged_in).lower()}">
-      <nav class="words-nav"><a href="/">← 首页</a><a href="/login">账号登录</a><a href="#library">六级词库</a></nav>
+      <nav class="words-nav"><a href="/">← 首页</a>{account_nav}<a href="#library">六级词库</a></nav>
       <div class="words-heading"><span class="eyebrow">CET-6 / DAILY PRACTICE</span><h1>把认识，练成记得。</h1><p>{notice}</p></div>
       <div id="words-stats" class="words-stats" aria-live="polite"></div>
       <section class="study-card" aria-labelledby="study-title">

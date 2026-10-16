@@ -954,7 +954,8 @@ class BlogHandler(BaseHTTPRequestHandler):
         if path == "/words" or path in ("/words/api/today", "/words/api/library"):
             token = self.require_user()
             if path == "/words":
-                self.send_html(admin_layout(word_learning.page(escape(csrf_for(token)) if token else "", bool(token)), "六级单词学习"))
+                user = user_by_id(int(SESSIONS[token]["user_id"])) if token else None
+                self.send_html(admin_layout(word_learning.page(escape(csrf_for(token)) if token else "", bool(token), user["username"] if user else ""), "六级单词学习"))
                 return
             if not WORDS_DB_PATH.exists():
                 self.send_json({"error": "词库尚未就绪"}, 503)
