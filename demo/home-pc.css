@@ -1,0 +1,227 @@
+﻿/* PC-only homepage scale.
+   The goal is to make the 100% view feel like the previous 120% zoom:
+   wider canvas, larger reading type, larger controls. Mobile/tablet untouched. */
+
+@media (min-width: 1280px) {
+  :root {
+    --head-h: 84px;
+    --shell: min(1480px, calc(100vw - 80px));
+    --pad: 0px;
+  }
+
+  /* Header ----------------------------------------------------------------- */
+
+  .brand-mark { width: 34px; height: 34px; }
+  .brand-type { gap: 12px; }
+  .brand-type em { font-size: 24px; }
+  .brand-cn { padding-left: 12px; font-size: 11.5px; letter-spacing: .2em; }
+
+  .primary-nav { gap: 36px; font-size: 14px; }
+  .head-actions { gap: 11px; }
+
+  .search-trigger {
+    height: 41px;
+    padding: 0 13px;
+    gap: 9px;
+    font-size: 12.5px;
+  }
+  .search-trigger .icon { width: 17px; height: 17px; }
+  .search-kbd { font-size: 10px; padding: 2px 5px; }
+
+  .icon-btn { width: 41px; height: 41px; }
+  .theme-toggle .icon { width: 18px; height: 18px; }
+  .login-link { margin-left: 6px; font-size: 12.5px; }
+
+  /* Hero ------------------------------------------------------------------- */
+
+  .hero { height: clamp(620px, 84svh, 1056px); }
+
+  .hero-inner { padding: calc(var(--head-h) + 52px) 0 120px; }
+  .hero-copy { max-width: 980px; }
+
+  .hero-kicker { gap: 12px; font-size: 11.5px; letter-spacing: .22em; }
+  .hero-dot { width: 6px; height: 6px; }
+
+  .hero-title { margin-top: 30px; }
+  .hero-en { font-size: clamp(152px, 11vw, 182px); }
+
+  .hero-cn {
+    gap: 20px;
+    margin-top: 24px;
+    font-size: clamp(30px, 2.5vw, 37px);
+    letter-spacing: .38em;
+  }
+  .hero-cn::before { width: 62px; }
+
+  .hero-lede {
+    max-width: 600px;
+    margin-top: 32px;
+    font-size: 19px;
+    line-height: 1.9;
+  }
+
+  .hero-actions { gap: 30px; margin-top: 38px; }
+  .btn-primary { height: 52px; padding: 0 24px; gap: 14px; font-size: 12.5px; }
+  .btn-quiet { font-size: 12.5px; }
+
+  .hero-aside {
+    right: 0;
+    bottom: 128px;
+    width: 268px;
+    padding: 23px 24px 21px;
+  }
+  .aside-label { margin-bottom: 16px; font-size: 10px; }
+  .aside-count { font-size: 11px; }
+  .aside-count span { font-size: 44px; }
+  .aside-stats { margin-top: 18px; }
+  .aside-stats div { padding: 9px 0; }
+  .aside-stats dt { font-size: 10px; }
+  .aside-stats dd { font-size: 11px; }
+  .barcode { height: 18px; margin-top: 18px; }
+
+  .hero-foot-inner { padding: 17px 0; font-size: 10px; letter-spacing: .2em; }
+  .hero-clock { gap: 10px; }
+
+  /* Section ---------------------------------------------------------------- */
+
+  .archive { padding: 98px 0 132px; }
+  .section-head { padding-bottom: 26px; gap: 38px; }
+  .eyebrow { gap: 10px; margin-bottom: 16px; font-size: 10.5px; }
+  .eyebrow::before { width: 20px; }
+  .section-title h2 { font-size: 54px; }
+
+  .filters { gap: 24px; padding-bottom: 5px; }
+  .filter { padding: 7px 0; font-size: 13px; }
+  .filter-count { font-size: 10px; }
+
+  .archive-grid {
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 360px);
+    gap: clamp(48px, 5vw, 76px);
+    margin-top: 48px;
+  }
+
+  /* Feature ---------------------------------------------------------------- */
+
+  .feature {
+    grid-template-columns: 136px minmax(0, 1fr);
+    gap: 38px;
+    padding: 40px 42px 42px;
+  }
+  .feature::before { width: 86px; }
+  .feature-index { min-height: 260px; padding-right: 30px; }
+  .feature-index span { font-size: 110px; }
+  .feature-index small { margin-top: 22px; font-size: 9.5px; }
+
+  .post-kicker { font-size: 10.5px; }
+  .feature h3 { margin-top: 16px; font-size: 43px; line-height: 1.3; }
+  .feature-excerpt { margin-top: 17px; font-size: 17.5px; line-height: 1.9; }
+  .post-meta { gap: 21px; margin-top: 24px; font-size: 11px; }
+
+  .read-link { margin-top: 27px; gap: 15px; font-size: 12px; }
+  .read-circle { width: 38px; height: 38px; font-size: 15px; }
+
+  /* List ------------------------------------------------------------------- */
+
+  .list-head { margin-top: 32px; padding-bottom: 11px; gap: 18px; font-size: 10.5px; }
+  .list-tools { gap: 16px; }
+  .list-count { font-size: 10.5px; }
+  .clear-filter { font-size: 10.5px; }
+
+  .post-row::before { left: -15px; top: 29px; bottom: 31px; }
+  .post-row-link {
+    grid-template-columns: 48px minmax(0, 1fr) 126px;
+    gap: 26px;
+    padding: 28px 0 30px;
+  }
+  .post-index { font-size: 11px; }
+  .post-index::after { width: 15px; margin-top: 9px; }
+  .post-cat { margin-bottom: 7px; font-size: 10.5px; }
+  .post-title { font-size: 26px; line-height: 1.42; }
+  .post-excerpt { max-width: 650px; margin-top: 8px; font-size: 15.8px; line-height: 1.8; }
+  .post-aside { gap: 7px; padding-top: 5px; font-size: 11px; }
+  .post-arrow { font-size: 17px; }
+
+  .list-more { min-height: 52px; padding: 0 18px; font-size: 10.5px; }
+  .empty-state { padding: 54px 0 46px; font-size: 13px; }
+
+  /* Sidebar ---------------------------------------------------------------- */
+
+  .side-block { padding-bottom: 28px; margin-bottom: 28px; }
+  .side-label { gap: 9px; font-size: 10px; }
+  .side-label::before { width: 5px; height: 5px; }
+  .side-caption { font-size: 10.5px; }
+
+  .now-line { margin-top: 16px; font-size: 15.5px; line-height: 1.7; }
+  .now-sub { margin-top: 5px; font-size: 11.5px; }
+  .progress { margin-top: 18px; }
+  .side-note { margin-top: 9px; font-size: 9.5px; }
+
+  .cal-nav { margin-top: 15px; grid-template-columns: 32px 1fr 32px; }
+  .cal-nav button { width: 32px; height: 32px; font-size: 13px; }
+  .cal-nav strong { font-size: 12.5px; }
+  .cal-weekdays { margin-top: 11px; }
+  .cal-weekdays span { font-size: 9.5px; }
+  .cal-grid { gap: 3px; margin-top: 4px; }
+  .cal-day, .cal-blank { min-height: 38px; }
+  .cal-day { font-size: 12.5px; }
+  .cal-day.has-post::after { bottom: 4px; width: 4px; height: 4px; }
+  .cal-note { min-height: 42px; margin-top: 14px; font-size: 12px; }
+
+  .todo-list { margin-top: 12px; }
+  .todo-item { padding: 8px 0; }
+  .todo-main { grid-template-columns: 20px minmax(0, 1fr); gap: 10px; }
+  .todo-box { width: 18px; height: 18px; margin-top: 2px; }
+  .todo-check:checked + .todo-box::after { left: 4px; top: 1px; width: 6px; height: 10px; }
+  .todo-text { font-size: 14.5px; line-height: 1.55; }
+  .todo-add { grid-template-columns: minmax(0, 1fr) 34px; gap: 9px; margin-top: 10px; }
+  .todo-add input { padding: 10px 0; font-size: 13.5px; }
+  .todo-add button { width: 34px; height: 34px; font-size: 18px; }
+
+  .tag-cloud { gap: 8px; margin-top: 16px; }
+  .tag { padding: 6px 9px; font-size: 11.5px; }
+
+  /* About ------------------------------------------------------------------ */
+
+  .about-inner { padding: 104px 0; }
+  .about-lead { padding-right: 84px; }
+  .about-lead h2 { font-size: clamp(38px, 4.4vw, 64px); }
+  .about-sign { margin-top: 28px; font-size: 20px; }
+  .about-copy { padding-left: 84px; }
+  .about-copy > p { max-width: 620px; font-size: 16.5px; line-height: 2; }
+  .about-facts { max-width: 620px; gap: 18px 28px; margin-top: 40px; padding-top: 22px; }
+  .about-facts dt { font-size: 9.5px; }
+  .about-facts dd { font-size: 12px; }
+
+  /* Footer ----------------------------------------------------------------- */
+
+  .foot-inner { padding: 64px 0 22px; }
+  .foot-top { gap: 48px; padding-bottom: 44px; }
+  .foot-logo { gap: 13px; font-size: 15px; }
+  .foot-logo img { width: 38px; height: 38px; }
+  .foot-logo em { font-size: 23px; }
+  .foot-brand p { margin-top: 16px; font-size: 13.5px; }
+  .foot-col h3 { margin-bottom: 16px; font-size: 9.5px; }
+  .foot-col a { margin-top: 11px; font-size: 14px; }
+  .foot-bottom { padding-top: 20px; font-size: 9.5px; }
+
+  /* Search dialog ---------------------------------------------------------- */
+
+  .search-panel { width: min(800px, 100%); max-height: 80vh; }
+  .search-field { gap: 15px; padding: 22px 24px; }
+  .search-icon { width: 22px; height: 22px; }
+  .search-field input { font-size: 18.5px; }
+  .search-esc kbd { font-size: 9px; padding: 2px 5px; }
+  .search-hint { padding: 13px 26px 7px; font-size: 10.5px; }
+  .search-results { padding: 4px 12px 12px; }
+  .search-result { gap: 3px 22px; padding: 14px 16px; }
+  .search-result .result-cat { font-size: 9.5px; }
+  .search-result .result-title { font-size: 16px; }
+  .search-result .result-excerpt { font-size: 12px; }
+  .search-result .result-date { font-size: 10px; }
+  .search-empty { padding: 40px 24px 44px; font-size: 12.5px; }
+  .search-suggestions button { padding: 6px 9px; font-size: 10.5px; }
+  .search-foot { gap: 22px; padding: 12px 24px; font-size: 9px; }
+
+  .toast { padding: 13px 19px; font-size: 13px; }
+  .to-top { width: 44px; height: 44px; font-size: 15px; }
+}

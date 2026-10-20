@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="登录或注册 Timeless日常存档，继续管理你的待办、账本和词库。">
+  <meta name="theme-color" content="#080a09">
+  <meta name="robots" content="noindex">
+  <title>登录 / 注册 · Timeless日常存档</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="../../assets/background.jpg">
+  <script>
+    try {
+      const saved = localStorage.getItem('timeless-demo-theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="../demo.css">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="../refinements.css">
+</head>
+<body class="auth-page" data-page="login">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-labelledby="auth-quote">
+      <a class="brand" href="../index.html" aria-label="Timeless日常存档，回到首页">
+        <img class="brand-mark" src="../../assets/favicon.svg" alt="" width="30" height="30">
+        <span class="brand-type"><em>Timeless</em><span class="brand-cn">日常存档</span></span>
+      </a>
+
+      <div class="auth-quote">
+        <p class="eyebrow">MEMBER ACCESS / 2026</p>
+        <blockquote id="auth-quote">写代码，<br>也写下<em>为什么</em>。</blockquote>
+        <p>登录后继续管理你的待办、账本和阅读记录。这里没有推送，也没有必须每天回来的理由。</p>
+      </div>
+
+      <div>
+        <ul class="auth-features" aria-label="登录后可用的功能">
+          <li>TODO</li>
+          <li>LEDGER</li>
+          <li>VOCABULARY</li>
+        </ul>
+        <div class="auth-visual-foot">
+          <span>EST. 2026 · HONG KONG</span>
+          <div class="auth-barcode" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-top">
+        <a class="auth-back" href="../index.html">← 返回首页</a>
+        <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="切换到日间模式">
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8.1 8.1 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z"></path></svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"></path></svg>
+        </button>
+      </div>
+
+      <div class="auth-box">
+        <div class="auth-tabs" role="tablist" aria-label="登录或注册">
+          <button class="auth-tab" type="button" role="tab" id="loginTab" aria-controls="loginPanel" aria-selected="true" data-auth-tab="login">登录</button>
+          <button class="auth-tab" type="button" role="tab" id="registerTab" aria-controls="registerPanel" aria-selected="false" data-auth-tab="register">注册</button>
+        </div>
+
+        <section class="auth-pane" id="loginPanel" role="tabpanel" aria-labelledby="loginTab" data-auth-panel="login">
+          <h1>欢迎回来</h1>
+          <p class="auth-sub">登录后管理你的待办、账本和阅读记录。</p>
+          <form class="auth-form" data-auth-form="login" novalidate>
+            <div class="field">
+              <label for="loginUser">用户名</label>
+              <input id="loginUser" name="username" autocomplete="username" required maxlength="30" placeholder="你的用户名">
+              <p class="field-error" data-error-for="loginUser"></p>
+            </div>
+            <div class="field">
+              <label for="loginPass">密码 <a href="#forgot" data-demo="概念稿：密码找回还没有接入">忘记密码？</a></label>
+              <div class="password-wrap">
+                <input id="loginPass" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="至少 8 位">
+                <button class="password-toggle" type="button" data-password-toggle aria-label="显示密码">显示</button>
+              </div>
+              <p class="field-error" data-error-for="loginPass"></p>
+            </div>
+            <button class="auth-submit" type="submit">登录 <span aria-hidden="true">→</span></button>
+          </form>
+          <div class="auth-links">
+            <span>还没有账号？</span>
+            <button type="button" data-auth-switch="register">创建一个</button>
+          </div>
+          <p class="auth-note"><strong>演示提示：</strong>任意用户名 + 8 位以上密码即可走完表单流程，不会提交到服务器。</p>
+        </section>
+
+        <section class="auth-pane" id="registerPanel" role="tabpanel" aria-labelledby="registerTab" data-auth-panel="register" hidden>
+          <h1>创建账号</h1>
+          <p class="auth-sub">一个账号，用来保存 Todo、账本和词库进度。</p>
+          <form class="auth-form" data-auth-form="register" novalidate>
+            <div class="field">
+              <label for="regUser">用户名</label>
+              <input id="regUser" name="username" autocomplete="username" required maxlength="30" placeholder="2–30 个字符">
+              <p class="field-error" data-error-for="regUser"></p>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="regPass">密码</label>
+                <div class="password-wrap">
+                  <input id="regPass" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="至少 8 位">
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="显示密码">显示</button>
+                </div>
+                <p class="field-error" data-error-for="regPass"></p>
+              </div>
+              <div class="field">
+                <label for="regPass2">确认密码</label>
+                <div class="password-wrap">
+                  <input id="regPass2" name="password_confirm" type="password" autocomplete="new-password" required minlength="8" placeholder="再输一次">
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="显示密码">显示</button>
+                </div>
+                <p class="field-error" data-error-for="regPass2"></p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="regInvite">邀请码 <span style="color: var(--faint); font-weight: 400;">选填</span></label>
+              <input id="regInvite" name="invite" autocomplete="off" maxlength="64" placeholder="如果站点开启了邀请注册">
+              <p class="field-error" data-error-for="regInvite"></p>
+            </div>
+            <button class="auth-submit" type="submit">创建账号 <span aria-hidden="true">→</span></button>
+          </form>
+          <div class="auth-links">
+            <span>已经有账号？</span>
+            <button type="button" data-auth-switch="login">返回登录</button>
+          </div>
+          <p class="auth-note"><strong>演示提示：</strong>表单只做前端校验，不会写入 timeless.db。</p>
+        </section>
+
+        <section class="auth-success" data-auth-success hidden aria-live="polite">
+          <div class="success-mark" aria-hidden="true">✓</div>
+          <h2 data-success-title>登录成功</h2>
+          <p data-success-copy>演示通过。正式站点会在这里建立会话并跳转首页。</p>
+          <div class="auth-success-actions">
+            <a href="../index.html">回到首页 →</a>
+            <button type="button" data-auth-reset>再试一次</button>
+          </div>
+        </section>
+
+        <div class="auth-foot">
+          <span>© 2026 TIMELESS日常存档</span>
+          <span>SECURE SESSION · DEMO</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <button class="to-top" type="button" data-top aria-label="回到顶部">↑</button>
+
+  <script src="shared.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

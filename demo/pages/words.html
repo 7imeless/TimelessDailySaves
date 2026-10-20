@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Timeless日常存档背单词：每天一组，先回忆，再核对。">
+  <meta name="theme-color" content="#080a09">
+  <meta name="robots" content="noindex">
+  <title>背单词 · Timeless日常存档</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="../../assets/background.jpg">
+  <script>
+    try {
+      const saved = localStorage.getItem('timeless-demo-theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="../demo.css">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="words.css">
+  <link rel="stylesheet" href="../refinements.css">
+</head>
+<body data-page="words">
+  <a class="skip-link" href="#study-title">跳到学习卡</a>
+
+  <header class="site-head" data-head>
+    <div class="head-inner">
+      <a class="brand" href="../index.html" aria-label="Timeless日常存档，回到首页">
+        <img class="brand-mark" src="../../assets/favicon.svg" alt="" width="30" height="30">
+        <span class="brand-type"><em>Timeless</em><span class="brand-cn">日常存档</span></span>
+      </a>
+      <nav class="primary-nav" aria-label="主导航">
+        <a href="../index.html#latest">文章</a>
+        <a href="archive.html">归档</a>
+        <a href="../index.html#about">关于</a>
+      </nav>
+      <div class="head-actions">
+        <a class="search-trigger" href="archive.html#search" aria-label="搜索文章">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          <span class="search-trigger-label">搜索</span>
+          <kbd class="search-kbd">/</kbd>
+        </a>
+        <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="切换到日间模式">
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8.1 8.1 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z"></path></svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"></path></svg>
+        </button>
+        <a class="login-link" href="login.html">登录</a>
+        <details class="mobile-menu"><summary aria-label="打开导航菜单">菜单 <span aria-hidden="true">☰</span></summary><nav aria-label="移动导航"><a href="../index.html#latest">最近文章</a><a href="archive.html">文章归档</a><a href="words.html">背单词</a><a href="money.html">日常账本</a><a href="../index.html#about">关于本站</a><a class="mobile-account" href="login.html">未登录 · 登录 / 注册 <small>演示页面</small></a></nav></details>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero page-hero--compact" aria-labelledby="words-title">
+      <div class="page-hero-inner">
+        <nav class="breadcrumb" aria-label="面包屑">
+          <a href="../index.html">首页</a><span>/</span><span>背单词</span>
+        </nav>
+        <p class="eyebrow">CET-6 / DAILY PRACTICE</p>
+        <h1 id="words-title">把认识，<br class="mobile-break">练成记得。</h1>
+        <p class="page-lede">每天一组，先回忆，再核对。词义、例句和发音都在手边，但先别急着看答案。</p>
+        <div class="page-meta">
+          <span>5,407 词库</span>
+          <span>8 个一组</span>
+          <span>约 4 分钟</span>
+        </div>
+      </div>
+      <div class="hero-scroll" aria-hidden="true">START PRACTICE <span>↓</span></div>
+    </section>
+
+    <div class="words-layout">
+      <section class="study-card" aria-labelledby="study-title">
+        <div class="study-head">
+          <div>
+            <p class="session-kicker">SESSION 01 / DAILY PRACTICE</p>
+            <h2 id="study-title">今日学习</h2>
+          </div>
+          <span class="session-count" data-session-count>第 01 / 08 个</span>
+        </div>
+        <div class="session-bar"><span data-session-bar></span></div>
+
+        <div class="study-toolbar">
+          <label class="mode-label" for="studyMode">练习方式
+            <select id="studyMode" data-mode>
+              <option value="meaning">看英文，回忆词义</option>
+              <option value="spell">看释义，默写英文</option>
+            </select>
+          </label>
+          <span class="toolbar-note">先回忆，再核对答案。</span>
+        </div>
+
+        <div class="study-prompt">
+          <p class="prompt-label" data-prompt-label>这个词是什么意思？</p>
+          <h3 class="study-word" data-word>state</h3>
+          <p class="study-phonetic"><span data-phonetic>/steɪt/</span><button class="speak-btn" type="button" data-speak aria-label="朗读单词"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7L8 10H5Z"></path><path d="M15.5 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4"></path></svg></button></p>
+          <p class="study-definition" data-definition hidden></p>
+        </div>
+
+        <form class="study-form" data-study-form>
+          <label class="sr-only" for="studyAnswer">写下你的回忆</label>
+          <input id="studyAnswer" type="text" autocomplete="off" spellcheck="false" placeholder="写下你回忆的词义（可选）" data-answer>
+          <button type="submit" data-reveal>查看答案 ↵</button>
+        </form>
+        <p class="study-hint"><kbd>Space</kbd> 查看答案 · <kbd>1</kbd>–<kbd>4</kbd> 选择记忆程度 · <kbd>S</kbd> 朗读</p>
+
+        <div class="study-solution" data-solution hidden>
+          <div class="solution-top">
+            <span class="solution-word" data-solution-word></span>
+            <span class="solution-phonetic" data-solution-phonetic></span>
+            <span class="solution-result" data-solution-result></span>
+          </div>
+          <p class="solution-translation" data-solution-translation></p>
+          <p class="solution-def" data-solution-def></p>
+          <div class="ratings" aria-label="选择记忆程度">
+            <button class="rate-btn" type="button" data-rate="forgot"><strong>忘了</strong><small>需再学习</small><kbd>1</kbd></button>
+            <button class="rate-btn" type="button" data-rate="hard"><strong>模糊</strong><small>回忆困难</small><kbd>2</kbd></button>
+            <button class="rate-btn" type="button" data-rate="good"><strong>记得</strong><small>正常回忆</small><kbd>3</kbd></button>
+            <button class="rate-btn" type="button" data-rate="easy"><strong>熟练</strong><small>轻松回忆</small><kbd>4</kbd></button>
+          </div>
+        </div>
+
+        <div class="study-complete" data-complete hidden>
+          <div class="complete-mark" aria-hidden="true">✓</div>
+          <h3>这一组完成了</h3>
+          <p>先回忆，再核对，记忆才会留下痕迹。明天这一组会按记忆程度重新排期。</p>
+          <div class="complete-stats">
+            <div><strong data-complete-count>8</strong><span>REVIEWED</span></div>
+            <div><strong data-complete-remembered>6</strong><span>REMEMBERED</span></div>
+            <div><strong data-complete-time>4</strong><span>MINUTES</span></div>
+          </div>
+          <div class="complete-actions">
+            <button type="button" data-restart>再来一组</button>
+            <a class="link-arrow" href="archive.html">去读点别的 <span>→</span></a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="study-rail" aria-label="学习概览">
+        <div class="stat-grid">
+          <div class="stat-card"><strong data-stat-due>12</strong><span>待复习</span></div>
+          <div class="stat-card"><strong data-stat-today>00</strong><span>今日复习</span></div>
+          <div class="stat-card"><strong data-stat-learned>128</strong><span>已学习</span></div>
+          <div class="stat-card"><strong data-stat-total>5407</strong><span>词库</span></div>
+        </div>
+
+        <div class="goal-block">
+          <div class="goal-ring" data-goal-ring style="--p:0%"><div><strong data-goal-count>0</strong><span>/ 8</span></div></div>
+          <div class="goal-copy">
+            <p>今日目标</p>
+            <small>一组 8 个词。<br>完成后可以再来一组。</small>
+          </div>
+        </div>
+
+        <div class="rail-block">
+          <p class="rail-label">SHORTCUTS</p>
+          <div class="shortcut-list">
+            <div class="shortcut-row"><span>查看答案</span><kbd>Space</kbd></div>
+            <div class="shortcut-row"><span>记忆程度</span><kbd>1 – 4</kbd></div>
+            <div class="shortcut-row"><span>朗读单词</span><kbd>S</kbd></div>
+            <div class="shortcut-row"><span>切换练习方式</span><kbd>Alt M</kbd></div>
+          </div>
+        </div>
+
+        <div class="rail-block">
+          <p class="rail-label">NOTE</p>
+          <p class="leech-note">这是概念稿：统计为示例，当前仅含 8 个示例词，5,407 为正式词库规模。学习记录仅保存在当前页面，刷新后重新开始。此处仅演示练习交互，不计算下次复习时间。当前正式站使用基础间隔规则，尚未接入 FSRS。</p>
+        </div>
+      </aside>
+
+      <section class="words-library" aria-labelledby="library-title">
+        <div class="library-head">
+          <div>
+            <h2 id="library-title">词库浏览</h2>
+            <p>先随便看看。搜索词形、词义或标签。</p>
+          </div>
+          <form class="library-search" data-library-form role="search">
+            <label class="sr-only" for="librarySearch">搜索词库</label>
+            <input id="librarySearch" type="search" placeholder="搜索词库…" autocomplete="off" data-library-input>
+            <button type="submit" aria-label="搜索">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+            </button>
+          </form>
+        </div>
+        <div class="word-grid" data-library></div>
+        <p class="library-empty" data-library-empty hidden>没有找到相关词条。</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="foot-inner">
+      <div class="foot-top">
+        <div class="foot-brand">
+          <a class="foot-logo" href="../index.html">
+            <img src="../../assets/favicon.svg" alt="" width="32" height="32">
+            <span><em>Timeless</em> 日常存档</span>
+          </a>
+          <p>写代码，也写下为什么。</p>
+        </div>
+        <nav class="foot-col" aria-label="浏览">
+          <h3>浏览</h3>
+          <a href="../index.html#latest">最近更新</a>
+          <a href="archive.html">文章归档</a>
+          <a href="../index.html#about">关于本站</a>
+          <a href="login.html">登录 / 注册</a>
+        </nav>
+        <nav class="foot-col" aria-label="工具">
+          <h3>工具</h3>
+          <a href="words.html">背单词</a>
+          <a href="money.html">记账</a>
+          <a href="#rss" data-demo="概念稿：RSS 还没有接进这个 demo">RSS</a>
+        </nav>
+        <nav class="foot-col" aria-label="联系">
+          <h3>联系</h3>
+          <a href="https://github.com/7imeless" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a href="https://github.com/7imeless/TimelessDailySaves" target="_blank" rel="noreferrer">站点源码</a>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 TIMELESS日常存档</span>
+        <span>鲁ICP备2026053385号</span>
+        <span>CONCEPT DEMO · NO TRACKING</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <button class="to-top" type="button" data-top aria-label="回到顶部">↑</button>
+
+  <script src="data.js"></script>
+  <script src="shared.js"></script>
+  <script src="words.js"></script>
+  <script src="../navigation.js"></script>
+</body>
+</html>
