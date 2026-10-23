@@ -12,6 +12,7 @@
   dialog?.addEventListener('click', event => { if (event.target === dialog) close(); });
   dialog?.addEventListener('cancel', () => opener?.focus());
   document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && dialog?.open) { event.preventDefault(); close(); return; }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); open(document.activeElement); }
     if (dialog?.open && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
       const links = [...results.querySelectorAll('a')];
