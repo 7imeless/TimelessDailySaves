@@ -1,0 +1,87 @@
+/* Shared visual refinements; deliberately confined to the concept demo. */
+:root[data-theme="light"] { --faint: #626b5d; --line-strong: #aaa18f; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.mobile-menu { display: none; }
+.feature-index span { font-size: 80px; }
+.post-date, .post-meta, .feature-meta, .breadcrumb, .page-meta,
+.session-count, .study-hint, .shortcut-row, .leech-note, .form-hint,
+.ledger-date, .ledger-cat, .ledger-count, .panel-head > span,
+.bar-top, .bar-top span:last-child, .breakdown-head span,
+.form-field label, .form-field .money-error, .summary-card small,
+.goal-copy small, .word-card small, .word-card-tags span { font-size: 12px; }
+.word-card p { font-size: 14px; }
+.rate-btn small, .summary-card > span { font-size: 11px; }
+.mode-label, .mode-label select, .stat-card span, .prompt-label,
+.study-phonetic, .foot-bottom, .post-row-meta { font-size: 12px; }
+.type-toggle button, .money-submit, .tool-btn, .ledger-filters select { font-size: 13px; min-height: 44px; }
+.form-field input, .form-field select, .form-field textarea { font-size: 16px; }
+.form-field input, .form-field select { min-height: 44px; }
+.study-form input, .library-search input { font-size: 16px; }
+.ledger-head, .ledger-row { grid-template-columns: 64px 94px minmax(0,1fr) 104px 96px; }
+.ledger-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.ledger-action, .edit-cancel { border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; font: 12px var(--sans); min-height: 44px; padding: 0 8px; }
+.ledger-action:hover, .edit-cancel:hover { color: var(--accent); border-color: var(--accent); }
+#moneyForm { scroll-margin-top: calc(var(--head-h) + 16px); }
+@media (min-width: 1280px) {
+  :root { --head-h: 84px; --shell: min(1480px, calc(100vw - 80px)); --pad: 0px; }
+  .brand-mark { width: 34px; height: 34px; }
+  .brand-type em { font-size: 24px; }
+  .brand-cn { font-size: 12px; }
+  .primary-nav { gap: 36px; font-size: 14px; }
+  .head-actions { gap: 11px; }
+  .search-trigger { height: 44px; font-size: 13px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .login-link { font-size: 13px; }
+  .btn-primary { min-height: 48px; font-size: 13px; }
+  .words-layout, .ledger-main, .archive-layout { max-width: var(--shell); }
+  .feature { grid-template-columns: 104px minmax(0,1fr); }
+  .feature-index span { font-size: 84px; }
+}
+@media (max-width: 860px) {
+  .mobile-menu { display: block; position: relative; }
+  .mobile-menu summary { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border: 1px solid var(--line-strong); color: var(--text); background: var(--surface); cursor: pointer; list-style: none; font-size: 13px; }
+  .mobile-menu summary::-webkit-details-marker { display: none; }
+  .mobile-menu nav { position: absolute; right: 0; top: calc(100% + 10px); width: min(300px, calc(100vw - 32px)); padding: 10px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: 0 16px 48px #0005; }
+  .mobile-menu nav a { display: block; padding: 13px 12px; font-size: 15px; }
+  .mobile-menu nav a:hover { background: var(--surface-2); color: var(--accent); }
+  .mobile-account { margin-top: 6px; border-top: 1px solid var(--line); }
+  .mobile-account small { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; }
+}
+@media (min-width: 701px) and (max-width: 1020px) {
+  .ledger-head, .ledger-row { grid-template-columns: 58px 80px minmax(0,1fr) 100px 96px; }
+}
+@media (max-width: 480px) {
+  .mobile-menu summary { gap: 0; padding: 0 10px; font-size: 0; }
+  .mobile-menu summary span { font-size: 16px; }
+}
+
+@media (max-width: 700px) {
+  .head-actions { gap: 5px; }
+  .search-trigger, .icon-btn { min-width: 40px; min-height: 44px; }
+  [data-page="words"] .page-hero, [data-page="money"] .page-hero { min-height: 0; padding: calc(var(--head-h) + 20px) var(--pad) 20px; }
+  [data-page="words"] .page-hero h1, [data-page="money"] .page-hero h1 { font-size: 32px; line-height: 1.2; margin: 8px 0; }
+  [data-page="words"] .page-hero .breadcrumb, [data-page="money"] .page-hero .breadcrumb,
+  [data-page="words"] .page-meta, [data-page="money"] .page-meta,
+  [data-page="words"] .hero-scroll, [data-page="money"] .hero-scroll { display: none; }
+  [data-page="words"] .page-lede, [data-page="money"] .page-lede { margin: 8px 0 0; font-size: 13px; line-height: 1.6; }
+  .mobile-break { display: none; }
+  .words-layout { padding-top: 18px; gap: 22px; }
+  .study-card { padding: 16px; }
+  .study-prompt { min-height: 130px; padding: 14px 0; }
+  .study-word { font-size: clamp(38px, 12vw, 56px); overflow-wrap: anywhere; }
+  .study-hint { margin-bottom: 0; }
+  .ledger-main { padding-top: 18px; }
+  .summary-card { padding: 12px 8px; }
+  .summary-card > span { display: block; line-height: 1.5; }
+  .summary-card strong { font-size: clamp(14px, 4.1vw, 20px); }
+  .money-side { display: contents; }
+  .money-side #moneyForm { order: 1; }
+  .money-side .panel:nth-child(2) { order: 3; }
+  .ledger-row { grid-template-columns: minmax(0,1fr) auto; }
+  .ledger-actions { grid-column: 2; grid-row: 3; }
+  .form-row { grid-template-columns: 1fr 1fr; }
+  .feature-index span { font-size: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,51 @@
+﻿/* Photo-through texture for the homepage.
+   The image stays fixed behind the page, softened and darkened so the
+   content keeps the night-flight atmosphere without the old contrast issue. */
+
+body.demo-home { background: #080a09; }
+
+body.demo-home::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: -8%;
+  background:
+    linear-gradient(180deg, rgba(7, 9, 8, .76), rgba(7, 9, 8, .81)),
+    url("/assets/background.jpg") center 42% / cover no-repeat;
+  filter: blur(2px) saturate(1.02) brightness(.9);
+  transform: scale(1.015);
+  pointer-events: none;
+}
+
+/* Keep the photo visible through the main content surfaces. */
+.demo-home .feature {
+  background: linear-gradient(100deg, rgba(10, 13, 11, .2), rgba(10, 13, 11, 0) 64%);
+}
+.demo-home .post-row:hover {
+  background: linear-gradient(90deg, transparent, rgba(18, 22, 19, .52) 55%, transparent);
+}
+.demo-home .about {
+  background: rgba(13, 16, 14, .12);
+}
+.demo-home .site-head.is-stuck { background: rgba(8, 10, 9, .78); }
+
+/* Light "day" mode: a paper veil with just a trace of the photo. */
+[data-theme="light"] body.demo-home { background: #f2eee3; }
+
+[data-theme="light"] body.demo-home::before {
+  background:
+    linear-gradient(rgba(242, 238, 227, .86), rgba(242, 238, 227, .82)),
+    url("/assets/background.jpg") center 42% / cover no-repeat;
+  filter: blur(7px) saturate(.78) brightness(1.02);
+}
+
+[data-theme="light"] .demo-home .feature {
+  background: linear-gradient(100deg, rgba(250, 247, 239, .32), rgba(250, 247, 239, 0) 64%);
+}
+[data-theme="light"] .demo-home .post-row:hover {
+  background: linear-gradient(90deg, transparent, rgba(250, 247, 239, .68) 55%, transparent);
+}
+[data-theme="light"] .demo-home .about {
+  background: rgba(236, 231, 218, .18);
+}
+[data-theme="light"] .demo-home .site-head.is-stuck { background: rgba(242, 238, 227, .82); }

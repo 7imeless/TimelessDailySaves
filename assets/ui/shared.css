@@ -1,0 +1,234 @@
+/* Shared shell for the secondary-page concept. Loads after ../demo.css. */
+
+:root {
+  --body-text: #c6cec4;
+  --warm: #e2b56a;
+  --danger-soft: rgba(224, 131, 115, .12);
+  --warm-soft: rgba(226, 181, 106, .12);
+}
+
+:root[data-theme="light"] {
+  --body-text: #3a4038;
+  --danger-soft: rgba(167, 69, 53, .08);
+  --warm-soft: rgba(154, 109, 35, .08);
+}
+
+body { background: var(--bg); }
+
+a.search-trigger { text-decoration: none; }
+
+/* Page cover --------------------------------------------------------------- */
+
+.page-hero {
+  position: relative;
+  min-height: 420px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+  padding: calc(var(--head-h) + 52px) var(--pad) 52px;
+  background: #060806 url("/assets/background.jpg") center 43% / cover no-repeat;
+}
+
+.page-hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 6, 5, .7) 0%, rgba(4, 6, 5, .12) 30%, transparent 54%),
+    linear-gradient(90deg, rgba(4, 6, 5, .88) 0%, rgba(4, 6, 5, .55) 38%, rgba(4, 6, 5, .08) 76%, rgba(4, 6, 5, .24) 100%),
+    linear-gradient(0deg, #070908 0%, rgba(7, 9, 8, .72) 12%, transparent 48%);
+  pointer-events: none;
+}
+
+.page-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  opacity: .05;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.page-hero--article { min-height: 620px; }
+.page-hero--compact { min-height: 360px; }
+
+.page-hero-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 30px;
+  color: rgba(240, 236, 225, .45);
+  font: 500 9px var(--mono);
+  letter-spacing: .1em;
+}
+.breadcrumb a { transition: color .2s ease; }
+.breadcrumb a:hover { color: var(--accent); }
+.breadcrumb span { opacity: .5; }
+
+.page-hero .eyebrow { color: var(--accent); margin-bottom: 13px; }
+
+.page-hero h1 {
+  max-width: 900px;
+  margin: 0;
+  color: #f5f1e6;
+  font-size: clamp(44px, 6.4vw, 82px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+
+.page-hero--article h1 {
+  max-width: 980px;
+  font-size: clamp(42px, 6.2vw, 76px);
+  line-height: 1.14;
+}
+
+.page-lede {
+  max-width: 620px;
+  margin: 18px 0 0;
+  color: rgba(236, 232, 221, .68);
+  font-size: 15.5px;
+  line-height: 1.9;
+}
+
+.page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  color: rgba(236, 232, 221, .46);
+  font: 500 9px var(--mono);
+  letter-spacing: .06em;
+}
+.page-meta span { display: inline-flex; align-items: center; gap: 7px; }
+.page-meta span::before {
+  content: "";
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .7;
+}
+.page-meta span:first-child::before { display: none; }
+
+.hero-scroll {
+  position: absolute;
+  z-index: 1;
+  right: var(--pad);
+  bottom: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(236, 232, 221, .36);
+  font: 500 8px var(--mono);
+  letter-spacing: .2em;
+}
+.hero-scroll span { color: var(--accent); font-size: 12px; animation: nudge 2.8s ease-in-out infinite; }
+
+/* Page body ---------------------------------------------------------------- */
+
+.page-main {
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 64px var(--pad) 112px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.page-heading h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+.page-heading .page-heading-meta {
+  color: var(--faint);
+  font: 500 9px var(--mono);
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+  font: 500 10px var(--mono);
+  letter-spacing: .08em;
+}
+.link-arrow span { transition: transform .2s ease; }
+.link-arrow:hover span { transform: translateX(3px); }
+
+.empty-panel {
+  padding: 54px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 500 12px var(--mono);
+  text-align: center;
+}
+.empty-panel .empty-mark {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font: italic 400 34px var(--serif);
+  opacity: .55;
+}
+
+/* Footer on secondary pages ------------------------------------------------- */
+
+.site-foot .foot-logo img { border-color: rgba(236, 232, 220, .18); }
+
+/* Responsive ---------------------------------------------------------------- */
+
+@media (max-width: 1020px) {
+  .page-hero { min-height: 380px; }
+  .page-hero--article { min-height: 540px; }
+  .page-hero--compact { min-height: 330px; }
+  .hero-scroll { display: none; }
+}
+
+@media (max-width: 700px) {
+  :root { --pad: 20px; --head-h: 64px; }
+
+  .page-hero {
+    min-height: 360px;
+    padding: calc(var(--head-h) + 42px) var(--pad) 38px;
+  }
+  .page-hero--article { min-height: 520px; }
+  .page-hero--compact { min-height: 300px; }
+
+  .breadcrumb { margin-bottom: 22px; font-size: 8px; }
+  .page-hero h1 { font-size: clamp(38px, 11.5vw, 54px); line-height: 1.12; letter-spacing: -.035em; }
+  .page-hero--article h1 { font-size: clamp(34px, 10vw, 46px); line-height: 1.2; }
+  .page-lede { margin-top: 15px; font-size: 13.5px; line-height: 1.85; }
+  .page-meta { gap: 11px; margin-top: 19px; font-size: 8px; }
+  .page-meta span { gap: 5px; }
+  .page-main { padding: 46px var(--pad) 84px; }
+  .page-heading { gap: 14px; padding-bottom: 14px; }
+  .page-heading h2 { font-size: 28px; }
+  .page-heading .page-heading-meta { font-size: 8px; }
+}

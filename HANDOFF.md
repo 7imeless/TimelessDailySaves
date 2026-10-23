@@ -1,6 +1,6 @@
 # Timeless日常存档：项目接手文档
 
-更新时间：2026-10-08（Asia/Hong_Kong）
+更新时间：2026-10-23（Asia/Hong_Kong）
 
 这是一套部署在 `timelessice.xyz` 的个人博客与日常存档网站。项目位于 GitHub 仓库：<https://github.com/7imeless/TimelessDailySaves>。
 
@@ -148,3 +148,21 @@ sudo systemctl restart timelessice
 - 代码片段库、书签收藏、快速备忘录等站外工具。
 - 图片拖拽上传和更完善的媒体管理。
 - 生产数据库与 `uploads/` 的定期备份和恢复演练。
+
+## 2026-10-23 正式前端更新
+
+正式站前端已根据最新 `demo/` 适配。Demo 是设计参考，生产页面仍由 Python 服务端渲染并使用真实数据库与权限。
+
+- `frontend.py`：共享页面外壳、首页、归档、文章和登录注册渲染。
+- `templates/`：从 Demo 提取的共享导航、页脚、归档和账号模板。
+- `assets/ui/`：复用 Demo 样式、导航、归档、阅读交互；`production.css` / `site.js` 为正式接口适配。
+- 根目录 `index.html`：正式首页模板，不再包含示例文章；动态填充文章、分类、标签、收支概览和账号状态。
+- `money.py`、`word_learning.py` 保留业务逻辑，更新页面结构；`money.js`、`words.js` 保留真实接口与 CSRF。
+- 全站主题继续使用 `timeless-theme`；手机导航显示真实账号，待办跨设备保存。
+- 单词仍为 ECDICT CET6 5,407 词，基础间隔规则，未接入 FSRS。
+- 账本保留按账号隔离、整数分金额、编辑、筛选、分页、删除确认和服务端 CSV。
+- 新增 `tests/test_frontend.py` 检查服务端内容、私密文章、转义、注册模式和真实表单。
+
+部署需一起同步 `app.py`、`frontend.py`、`index.html`、`money.py`、`word_learning.py`、`money.js`、`words.js`、`templates/`、`assets/ui/`。不要覆盖生产数据库、上传文件或环境配置。旧后台仍沿用 `styles.css` / `admin.js`，公共页面使用新 UI 资源。
+
+Sunny 已独立部署于 `/opt/sunny-web`，systemd 服务 `sunny`，监听 `127.0.0.1:8010`，公开入口为 `https://timelessice.xyz/sunny/`。本次博客前端部署不修改 Sunny。SSH 私钥仅用于连接，不进入部署包或 Git。

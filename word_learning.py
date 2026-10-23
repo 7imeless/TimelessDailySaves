@@ -115,21 +115,15 @@ def review(path, connection, user_id, form):
 
 
 def page(csrf, logged_in, username=''):
-    notice = '进度保存到你的账号，可跨设备复习。' if logged_in else '游客体验：本次练习不保存。登录后记录学习进度。'
-    account_nav = f'<span class="words-account">已登录 · {escape(username)}</span>' if logged_in else '<a href="/login">账号登录</a>'
-    return f'''<main class="words-shell" data-csrf="{csrf}" data-logged-in="{str(logged_in).lower()}">
-      <nav class="words-nav"><a href="/">← 首页</a>{account_nav}<a href="#library">六级词库</a></nav>
-      <div class="words-heading"><span class="eyebrow">CET-6 / DAILY PRACTICE</span><h1>把认识，练成记得。</h1><p>{notice}</p></div>
-      <div id="words-stats" class="words-stats" aria-live="polite"></div>
-      <section class="study-card" aria-labelledby="study-title">
-        <div class="study-toolbar"><h2 id="study-title">今日学习</h2><label>练习方式 <select id="study-mode"><option value="recall">看英文，回忆词义</option><option value="spell">看释义，默写英文</option></select></label></div>
-        <p class="words-hint">优先复习到期词，每批最多 20 词，包含最多 10 个新词。先尝试回忆，再查看答案。</p>
-        <p id="study-progress"></p><div id="study-prompt"></div>
-        <form id="study-form"><label for="study-answer" id="answer-label">写下你回忆的词义（可选）</label><input id="study-answer" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="admin-button primary" id="reveal" type="submit">查看答案 ↵</button></form>
-        <div id="study-solution" hidden><div id="study-result"></div><h3 id="solution-word"></h3><p id="solution-phonetic"></p><button class="admin-button" id="speak" type="button">听发音</button><p id="solution-translation"></p><p id="solution-definition"></p>
-          <p class="words-hint">答错或没有回忆出来，请选“忘了”。默写错误自动按“忘了”记录。</p>
-          <div class="rating-buttons"><button type="button" data-rating="1">忘了<small>10 分钟</small></button><button type="button" data-rating="2">很难<small>较短间隔</small></button><button type="button" data-rating="3">记得<small>正常间隔</small></button><button type="button" data-rating="4">很容易<small>较长间隔</small></button></div>
-        </div><p id="study-message" role="status"></p><button class="admin-button" id="study-restart" type="button" hidden>加载下一批</button>
-      </section>
-      <section id="library" class="words-library"><h2>六级词库</h2><p class="words-hint">来源：ECDICT cet6 标签（5,407 条），释义尚未逐条校对。不是官方大纲认证词表。</p><form id="library-search" class="site-search"><label class="sr-only" for="library-query">搜索单词或中文释义</label><input id="library-query" maxlength="100" placeholder="搜索单词或中文释义"><button type="submit" aria-label="搜索">⌕</button></form><p id="library-count" role="status"></p><div id="library-list"></div><div class="words-pagination"><button class="admin-button" id="library-prev" type="button">上一页</button><button class="admin-button" id="library-next" type="button">下一页</button></div></section>
-    </main><script src="/words.js?v=1" defer></script>'''
+    from frontend import hero
+    notice = '进度保存到你的账号，可跨设备复习。' if logged_in else '游客体验不保存进度。登录后可跨设备复习。'
+    return f'''<main id="main" class="words-shell" data-csrf="{csrf}" data-logged-in="{str(logged_in).lower()}">
+      {hero('把认识，练成记得。',notice,'CET-6 / DAILY PRACTICE','words')}
+      <div class="words-layout"><section class="study-card" aria-labelledby="study-title"><div class="study-head"><div><p class="session-kicker">DAILY PRACTICE</p><h2 id="study-title">今日学习</h2></div><span class="session-count" id="study-progress"></span></div><div class="session-bar"><span id="session-bar"></span></div>
+      <div class="study-toolbar"><label class="mode-label" for="study-mode">练习方式 <select id="study-mode"><option value="recall">看英文，回忆词义</option><option value="spell">看释义，默写英文</option></select></label></div>
+      <div class="study-prompt" id="study-prompt"></div><form id="study-form" class="study-form"><label class="sr-only" for="study-answer" id="answer-label">写下你回忆的词义（可选）</label><input id="study-answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="写下你回忆的词义（可选）"><button id="reveal" type="submit">查看答案 ↵</button></form>
+      <p class="study-hint">先尝试回忆，再查看答案。Space 查看答案 · 1–4 评分 · S 朗读</p>
+      <div id="study-solution" class="study-solution" hidden><p id="study-result" class="solution-result"></p><h3 id="solution-word" class="solution-word"></h3><p id="solution-phonetic" class="study-phonetic"></p><button class="tool-btn" id="speak" type="button">听发音</button><p id="solution-translation" class="solution-translation"></p><p id="solution-definition" class="solution-definition"></p>
+      <p class="study-hint">没有回忆出来请选择“忘了”；默写错误会自动按“忘了”记录。</p><div class="ratings"><button class="rate-btn" type="button" data-rating="1"><strong>忘了</strong><small>10 分钟</small><kbd>1</kbd></button><button class="rate-btn" type="button" data-rating="2"><strong>很难</strong><small>较短间隔</small><kbd>2</kbd></button><button class="rate-btn" type="button" data-rating="3"><strong>记得</strong><small>正常间隔</small><kbd>3</kbd></button><button class="rate-btn" type="button" data-rating="4"><strong>很容易</strong><small>较长间隔</small><kbd>4</kbd></button></div></div><p id="study-message" role="status"></p><button class="tool-btn" id="study-restart" type="button" hidden>加载下一批</button></section>
+      <aside class="study-rail" aria-label="学习概览"><div id="words-stats" class="stat-grid" aria-live="polite"></div><div class="rail-block"><p class="rail-label">METHOD</p><p class="leech-note">优先复习到期词，每批最多 20 词，包含最多 10 个新词。使用基础间隔规则，根据每次自评安排下次复习。</p></div><div class="rail-block"><p class="rail-label">SHORTCUTS</p><div class="shortcut-list"><div class="shortcut-row"><span>查看答案</span><kbd>Space</kbd></div><div class="shortcut-row"><span>记忆程度</span><kbd>1–4</kbd></div><div class="shortcut-row"><span>朗读</span><kbd>S</kbd></div></div></div></aside>
+      <section id="library" class="words-library"><div class="library-head"><div><h2>六级词库</h2><p>来源：ECDICT cet6 标签，5,407 词。释义未经逐条校对，非官方认证词表。</p></div><form id="library-search" class="library-search"><label class="sr-only" for="library-query">搜索单词或中文释义</label><input id="library-query" maxlength="100" placeholder="搜索单词或中文释义"><button type="submit" aria-label="搜索">⌕</button></form></div><p id="library-count" class="form-hint" role="status"></p><div id="library-list" class="word-grid"></div><div class="words-pagination"><button class="tool-btn" id="library-prev" type="button">上一页</button><button class="tool-btn" id="library-next" type="button">下一页</button></div></section></div></main><script src="/words.js?v=20261023" defer></script>'''

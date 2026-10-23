@@ -1,226 +1,149 @@
 <!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Timeless日常存档，记录代码、系统设计与日常观察。" />
-    <title>Timeless日常存档</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="icon" href="/assets/favicon.svg?v=1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=23" />
-  </head>
-  <body>
-    <section class="landing" aria-labelledby="landing-title">
-      <div class="landing-center">
-        <p class="landing-kicker">PERSONAL BLOG · EST. 2026</p>
-        <h1 id="landing-title"><span class="landing-word">Timeless</span> <span>日常存档</span></h1>
-        <p class="landing-signature">写代码，也写下为什么。</p>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Timeless日常存档：布衣饭菜，可乐终身。系统设计、前端实践、读书与日常观察。">
+  <meta name="theme-color" content="#080a09">
+
+  <title>Timeless日常存档</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="/assets/background.jpg">
+
+
+
+
+
+<!-- HEAD -->
+</head>
+<body class="demo-home">
+  <a class="skip-link" href="#main">跳到正文</a>
+
+  <!-- HEADER -->
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-media" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="hero-kicker"><span class="hero-dot" aria-hidden="true"></span>PERSONAL ARCHIVE · 青岛</p>
+          <h1 class="hero-title" id="hero-title">
+            <span class="hero-en">Timeless</span>
+            <span class="hero-cn">日常存档</span>
+          </h1>
+          <p class="hero-lede">布衣饭菜，可乐终身。</p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="#latest">进入存档 <span aria-hidden="true">→</span></a>
+            <a class="btn-quiet" href="#about">关于这个站点</a>
+          </div>
+        </div>
+
+        <aside class="hero-aside" aria-label="本期概览">
+          <p class="aside-label">THIS ISSUE</p>
+          <p class="aside-count"><span><!-- TOTAL --></span> 篇记录</p>
+          <dl class="aside-stats">
+            <div><dt>最后更新</dt><dd><!-- UPDATED --></dd></div>
+            <div><dt>阅读时间</dt><dd><!-- MINUTES --> MIN</dd></div>
+            <div><dt>标签</dt><dd><!-- TAG_COUNT --></dd></div>
+          </dl>
+          <div class="barcode" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </aside>
       </div>
-      <div class="landing-scroll" aria-hidden="true"><span></span><small>SCROLL TO READ</small></div>
+
+      <div class="hero-foot">
+        <div class="hero-foot-inner">
+          <span class="scroll-cue">SCROLL TO EXPLORE <span aria-hidden="true">↓</span></span>
+          <span class="hero-clock" data-clock>青岛 · --:--</span>
+        </div>
+      </div>
     </section>
 
-    <main class="page-shell">
-      <header class="site-header">
-        <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Timeless日常存档</span></div>
-        <div class="header-tools"><span class="header-year">2026</span><a class="words-link" href="/words">背单词</a><a class="words-link" href="/money">记账</a><button class="theme-toggle" type="button" data-theme-toggle aria-label="切换浅色主题" title="切换浅色主题"><span aria-hidden="true">☼</span><span data-theme-label>浅色</span></button><span id="auth-nav"><!-- AUTH_NAV --></span></div>
-      </header>
-
-      <div class="content-layout">
-      <section class="articles" aria-labelledby="articles-title">
-        <div class="section-label"><span id="articles-title">最近写了什么</span><span><a href="/archive">文章归档 ↗</a>　<span id="article-count"><!-- ARTICLE_COUNT --></span></span></div>
-        <form class="site-search" method="get" action="/" role="search"><label class="sr-only" for="site-search-input">搜索文章</label><input id="site-search-input" name="q" value="<!-- SEARCH_QUERY -->" placeholder="搜索文章、标签或正文"><button type="submit" aria-label="搜索">⌕</button></form>
-        <p class="search-label"><!-- SEARCH_LABEL --></p>
-        <div class="article-list">
-          <!-- ARTICLES_START -->
-          <article class="article-entry article-entry-featured">
-            <div class="article-meta"><span class="article-number">01</span><span>工程实践</span><time datetime="2026-08-24">2026.08.24</time></div>
-            <h2>缓存失效之后：一次关于“新鲜感”的系统思考</h2>
-            <p>从一个线上事故出发，聊聊缓存、认知和我们为什么总会忘记更新。</p>
-            <span class="article-duration">8 min read</span>
-          </article>
-          <article class="article-entry">
-            <div class="article-meta"><span class="article-number">02</span><span>前端</span><time datetime="2026-07-16">2026.07.16</time></div>
-            <h2>当我不再追逐“最佳实践”</h2>
-            <p>工具会变，但判断问题的方式可以留下。</p>
-            <span class="article-duration">6 min read</span>
-          </article>
-          <article class="article-entry">
-            <div class="article-meta"><span class="article-number">03</span><span>读书</span><time datetime="2026-06-08">2026.06.08</time></div>
-            <h2>读《设计心理学》：好的默认值</h2>
-            <p>少一个选择，有时就是多一点自由。</p>
-            <span class="article-duration">4 min read</span>
-          </article>
-          <article class="article-entry">
-            <div class="article-meta"><span class="article-number">04</span><span>随笔</span><time datetime="2026-04-29">2026.04.29</time></div>
-            <h2>给忙碌的人留一块没有通知的地方</h2>
-            <p>关于注意力、边界和一个下午的散步。</p>
-            <span class="article-duration">3 min read</span>
-          </article>
-          <article class="article-entry">
-            <div class="article-meta"><span class="article-number">05</span><span>系统设计</span><time datetime="2026-03-12">2026.03.12</time></div>
-            <h2>把“可观测”从口号变成习惯</h2>
-            <p>日志、指标和那些真正需要被看见的信号。</p>
-            <span class="article-duration">9 min read</span>
-          </article>
-          <!-- ARTICLES_END -->
+    <section class="archive" id="latest" aria-labelledby="latest-title">
+      <div class="section-head">
+        <div class="section-title">
+          <p class="eyebrow">LATEST NOTES</p>
+          <h2 id="latest-title">最近更新</h2>
         </div>
-      </section>
-
-      <aside class="calendar-panel" aria-label="日历">
-        <!-- CALENDAR -->
-        <!-- TODO_PANEL -->
-      </aside>
+        <!-- FILTERS -->
       </div>
 
-      <footer class="site-footer">
-        <span>© 2026 TIMELESS日常存档</span>
-        <span>鲁ICP备2026053385号</span>
-        <span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span>
-      </footer>
-    </main>
-    <script>
-      (() => {
-        const searchForm = document.querySelector('.site-search');
-        const searchInput = document.getElementById('site-search-input');
-        const articleList = document.querySelector('.article-list');
-        const articleCount = document.getElementById('article-count');
-        const searchLabel = document.querySelector('.search-label');
-        let searchTimer;
-        const runSearch = async () => {
-          if (!searchForm || !articleList) return;
-          const query = searchInput.value.trim();
-          try {
-            const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
-            if (!response.ok) throw new Error('search failed');
-            const result = await response.json();
-            articleList.innerHTML = result.cards;
-            articleCount.textContent = result.count;
-            searchLabel.textContent = result.label;
-            window.history.replaceState({}, '', query ? `/?q=${encodeURIComponent(query)}#articles` : '/#articles');
-          } catch (_) { searchForm.submit(); }
-        };
-        searchForm?.addEventListener('submit', (event) => { event.preventDefault(); runSearch(); });
-        searchInput?.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 260); });
-        const calendarPanel = document.querySelector('.calendar-panel');
-        if (!calendarPanel) return;
-        const scheduleNotice = (root) => {
-          const notice = root.querySelector('[data-auto-hide="true"]');
-          if (!notice) return;
-          window.setTimeout(() => notice.classList.add('is-hiding'), 2600);
-          window.setTimeout(() => notice.remove(), 3100);
-        };
-        const replaceTodo = (markup) => {
-          const template = document.createElement('template');
-          template.innerHTML = markup.trim();
-          const nextTodo = template.content.querySelector('#todo');
-          const currentTodo = document.getElementById('todo');
-          if (!nextTodo || !currentTodo) throw new Error('Todo panel missing');
-          currentTodo.replaceWith(nextTodo);
-          scheduleNotice(nextTodo);
-          return { template, nextTodo };
-        };
-        scheduleNotice(document);
-        calendarPanel.addEventListener('click', async (event) => {
-          const editLink = event.target.closest('.todo-actions a');
-          if (editLink && calendarPanel.contains(editLink)) {
-            event.preventDefault();
-            try {
-              const response = await fetch(editLink.href, { headers: { 'X-Requested-With': 'fetch' } });
-              if (!response.ok) throw new Error('Todo edit failed');
-              replaceTodo(await response.text());
-            } catch (error) {
-              window.location.assign(editLink.href);
-            }
-            return;
-          }
-          const link = event.target.closest('a.calendar-day, a.calendar-nav, a.todo-date-link');
-          if (!link || !calendarPanel.contains(link)) return;
-          event.preventDefault();
-          const targetUrl = new URL(link.href, window.location.href);
-          const dateValue = targetUrl.searchParams.get('todo_date');
-          if (!dateValue) return;
-          link.setAttribute('aria-busy', 'true');
-          try {
-            const isMonthNavigation = link.classList.contains('calendar-nav') || link.classList.contains('todo-date-link');
-            const endpoint = isMonthNavigation
-              ? `/calendar/view?month=${encodeURIComponent(targetUrl.searchParams.get('month') || '')}&todo_date=${encodeURIComponent(dateValue)}`
-              : `/todo/view?date=${encodeURIComponent(dateValue)}`;
-            const response = await fetch(endpoint, {
-              headers: { 'X-Requested-With': 'fetch' }
-            });
-            if (!response.ok) throw new Error('Todo view failed');
-            const { template } = replaceTodo(await response.text());
-            if (isMonthNavigation) {
-              const nextCalendar = template.content.querySelector('#calendar');
-              const currentCalendar = document.getElementById('calendar');
-              if (!nextCalendar || !currentCalendar) throw new Error('Calendar missing');
-              currentCalendar.replaceWith(nextCalendar);
-            } else {
-              const currentCalendar = document.getElementById('calendar');
-              currentCalendar.querySelectorAll('.calendar-day.is-selected').forEach((day) => day.classList.remove('is-selected'));
-              link.classList.add('is-selected');
-            }
-            window.history.replaceState({}, '', `${targetUrl.pathname}${targetUrl.search}#todo`);
-          } catch (error) {
-            window.location.assign(link.href);
-          } finally {
-            link.removeAttribute('aria-busy');
-          }
-        });
-        calendarPanel.addEventListener('submit', async (event) => {
-          const form = event.target.closest('#todo form');
-          if (!form || !calendarPanel.contains(form)) return;
-          event.preventDefault();
-          const submitter = event.submitter;
-          if (submitter) submitter.disabled = true;
-          try {
-            const response = await fetch(form.action, {
-              method: form.method || 'POST',
-              body: new URLSearchParams(new FormData(form)),
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                'X-Requested-With': 'fetch'
-              }
-            });
-            const markup = await response.text();
-            if (!markup.includes('id="todo"')) throw new Error('Todo update failed');
-            const { template, nextTodo } = replaceTodo(markup);
-            const nextCalendar = template.content.querySelector('#calendar');
-            const currentCalendar = document.getElementById('calendar');
-            if (nextCalendar && currentCalendar) currentCalendar.replaceWith(nextCalendar);
-            const selectedDate = nextTodo.querySelector('input[name="due_date"]')?.value;
-            if (selectedDate) {
-              const calendar = document.getElementById('calendar');
-              calendar.querySelectorAll('.calendar-day.is-selected').forEach((day) => day.classList.remove('is-selected'));
-              const selectedLink = calendar.querySelector(`a[href*="todo_date=${selectedDate}"]`);
-              if (selectedLink) selectedLink.classList.add('is-selected');
-              window.history.replaceState({}, '', `/?month=${selectedDate.slice(0, 7)}&todo_date=${selectedDate}#todo`);
-            }
-          } catch (error) {
-            form.submit();
-          } finally {
-            if (submitter && submitter.isConnected) submitter.disabled = false;
-          }
-        });
-      })();
-    </script>
-    <script>
-      (() => {
-        const root = document.documentElement;
-        const button = document.querySelector('[data-theme-toggle]');
-        const label = button?.querySelector('[data-theme-label]');
-        const saved = localStorage.getItem('timeless-theme');
-        if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
-        const update = () => {
-          const light = root.dataset.theme === 'light';
-          if (button) { button.setAttribute('aria-label', light ? '切换深色主题' : '切换浅色主题'); button.title = light ? '切换深色主题' : '切换浅色主题'; }
-          if (label) label.textContent = light ? '深色' : '浅色';
-        };
-        update();
-        button?.addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('timeless-theme', root.dataset.theme); update(); });
-      })();
-    </script>
-  </body>
+
+
+      <div class="archive-grid">
+        <div class="archive-main">
+<!-- ARTICLES_START --><!-- ARTICLES_END -->
+        </div>
+        <aside class="sidebar">
+          <section class="side-block">
+            <div class="side-head">
+              <p class="side-label">LEDGER</p>
+              <span class="side-caption"><!-- MONTH --></span>
+            </div>
+            <a class="ledger-quick" href="/money#entry-form">
+              <span class="ledger-quick-icon" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M4 7.2h16v11.6H4z"></path><path d="M4 7.2 6.6 4.4h10.8L20 7.2"></path><path d="M14.8 11.8H20v4h-5.2a2 2 0 0 1 0-4Z"></path></svg>
+              </span>
+              <span class="ledger-quick-copy"><strong>记一笔</strong><small><!-- EXPENSE --></small></span>
+              <span class="ledger-quick-arrow" aria-hidden="true">→</span>
+            </a>
+          </section>
+
+<div class="calendar-panel"><!-- CALENDAR --><!-- TODO_PANEL --></div>
+          <section class="side-block side-block-last" id="tags">
+            <p class="side-label">TAGS</p>
+            <div class="tag-cloud"><!-- TAGS --></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="about" id="about" aria-labelledby="about-title">
+      <div class="about-inner">
+        <div class="about-lead">
+          <p class="eyebrow">ABOUT THIS ARCHIVE</p>
+          <h2 id="about-title">一个臭写代码的</h2>
+          <p class="about-sign">— Timeless</p>
+        </div>
+        <div class="about-copy">
+          <p>本站代码全部由 AI 生成：后端代码由 GPT-6.1-sol 生成，前端代码由 DeepSeek-V4.1-Flash 优化。</p>
+          <dl class="about-facts">
+            <div><dt>EST.</dt><dd>2026</dd></div>
+            <div><dt>BASED IN</dt><dd>青岛</dd></div>
+            <div><dt>STACK</dt><dd>PYTHON + SQLITE</dd></div>
+            <div><dt>TRACKING</dt><dd>NONE</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+
+  <dialog class="search-dialog" data-search-dialog aria-labelledby="searchTitle">
+    <div class="search-layer" data-search-layer>
+      <div class="search-panel">
+        <h2 class="sr-only" id="searchTitle">搜索文章</h2>
+        <div class="search-field">
+          <svg class="icon search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          <input type="search" data-search-input placeholder="搜索标题、分类或标签…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="searchResults" aria-autocomplete="list" aria-label="搜索文章">
+          <button class="search-esc" type="button" data-search-close aria-label="关闭搜索"><kbd>ESC</kbd></button>
+        </div>
+        <p class="search-hint" data-search-hint aria-live="polite">输入关键词，或从下面的记录开始。</p>
+        <ul class="search-results" id="searchResults" role="listbox" aria-label="搜索结果" data-search-results></ul>
+        <div class="search-foot">
+          <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+          <span><kbd>↵</kbd> 定位文章</span>
+          <span><kbd>ESC</kbd> 关闭</span>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <button class="to-top" type="button" data-top aria-label="回到顶部">↑</button>
+
+
+
+<!-- SCRIPTS -->
+</body>
 </html>

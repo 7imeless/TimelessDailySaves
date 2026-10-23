@@ -18,6 +18,8 @@ from zoneinfo import ZoneInfo
 from markdown_it import MarkdownIt
 import word_learning
 import money
+import frontend
+import sys
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -456,25 +458,8 @@ def article_toc(rendered: str) -> str:
     return f'<nav class="article-toc" aria-label="文章目录"><div class="toc-title">目录</div><ol>{items}</ol></nav>'
 
 
-def archive_page() -> str:
-    posts = published_articles()
-    groups: dict[str, dict[str, list[sqlite3.Row]]] = {}
-    for post in posts:
-        stamp = post["published_at"] or post["updated_at"]
-        year, month = stamp[:4], stamp[:7]
-        groups.setdefault(year, {}).setdefault(month, []).append(post)
-    sections: list[str] = []
-    for year in sorted(groups, reverse=True):
-        months: list[str] = []
-        for month in sorted(groups[year], reverse=True):
-            entries = []
-            for post in groups[year][month]:
-                tags = "".join(f'<span class="archive-tag">#{escape(tag)}</span>' for tag in article_tags(post))
-                entries.append(f'<li class="archive-entry"><time>{display_date(post["published_at"] or post["updated_at"])}</time><a href="/post/{quote(post["slug"])}">{escape(post["title"])}</a><span class="archive-meta">{escape(post["category"])} {tags}</span></li>')
-            months.append(f'<section class="archive-month"><h2>{escape(month.replace("-", " / "))}</h2><ul>{"".join(entries)}</ul></section>')
-        sections.append(f'<section class="archive-year"><h1>{escape(year)}</h1>{"".join(months)}</section>')
-    body = "".join(sections) or '<p class="empty-state">还没有已发布的文章。</p>'
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>文章归档 / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=23"></head><body><main class="page-shell archive-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><div class="header-tools">{THEME_BUTTON}<a class="article-back" href="/">← 返回首页</a></div></header><section class="archive-shell"><div class="eyebrow">ARCHIVE / {len(posts):02d} ARTICLES</div><h1>文章归档</h1><p class="archive-lead">按时间整理写下的内容。</p>{body}</section><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main>{THEME_SCRIPT}</body></html>'''
+def archive_page(user=None, token=None):
+    return frontend.archive(sys.modules[__name__], user, token)
 
 
 def all_articles() -> list[sqlite3.Row]:
@@ -482,30 +467,8 @@ def all_articles() -> list[sqlite3.Row]:
         return connection.execute("SELECT * FROM articles ORDER BY updated_at DESC").fetchall()
 
 
-def article_cards(posts: list[sqlite3.Row]) -> str:
-    if not posts:
-        return '<p class="empty-state">还没有发布的文章。</p>'
-    cards: list[str] = []
-    for index, post in enumerate(posts, start=1):
-        featured = " article-entry-featured" if index == 1 else ""
-        cover = ""
-        cover_class = ""
-        if post["cover_image"]:
-            cover_class = " has-cover"
-            cover = f'<a class="article-cover" href="/post/{quote(post["slug"])}" tabindex="-1" aria-hidden="true"><img src="{escape(post["cover_image"])}" alt="" loading="lazy"></a>'
-        duration = max(1, round(len(post["content"]) / 500))
-        tags = "".join(f'<a class="article-tag" href="/?tag={quote(tag)}#articles">#{escape(tag)}</a>' for tag in article_tags(post))
-        cards.append(
-            f"""
-          <article class="article-entry{featured}{cover_class}">{cover}
-            <div class="article-meta"><span class="article-number">{index:02d}</span><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{display_date(post['published_at'] or post['updated_at'])}</time></div>
-            <h2><a href="/post/{quote(post['slug'])}">{escape(post['title'])}</a></h2>
-            <p>{escape(post['excerpt'])}</p>
-            {f'<div class="article-tags">{tags}</div>' if tags else ''}
-            <span class="article-duration">{duration} min read</span>
-          </article>"""
-        )
-    return "".join(cards)
+def article_cards(posts):
+    return frontend.cards(sys.modules[__name__], posts)
 
 
 def valid_date(value: str, fallback: date) -> date:
@@ -558,7 +521,7 @@ def render_calendar(posts: list[sqlite3.Row], todos: list[sqlite3.Row] | None = 
             cells.append(f'<a class="{" ".join(classes)}" href="/?month={month:%Y-%m}&amp;todo_date={target}#todo" aria-label="查看 {target} 的待办">{day}</a>')
     previous_month = (month - timedelta(days=1)).replace(day=1)
     next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
-    return f"""<section id="calendar"><div class="calendar-head"><a class="calendar-nav" href="/?month={previous_month:%Y-%m}&amp;todo_date={previous_month:%Y-%m}-01#calendar" aria-label="上个月">←</a><strong>{month.year} / {month.month:02d}</strong><a class="calendar-nav" href="/?month={next_month:%Y-%m}&amp;todo_date={next_month:%Y-%m}-01#calendar" aria-label="下个月">→</a></div><div class="calendar-grid">{''.join(cells)}</div><p class="calendar-note">点击日期查看当天 Todo</p></section>"""
+    return f"""<section id="calendar"><p class="side-label">CALENDAR</p><div class="calendar-head"><a class="calendar-nav" href="/?month={previous_month:%Y-%m}&amp;todo_date={previous_month:%Y-%m}-01#calendar" aria-label="上个月">←</a><strong>{month.year} / {month.month:02d}</strong><a class="calendar-nav" href="/?month={next_month:%Y-%m}&amp;todo_date={next_month:%Y-%m}-01#calendar" aria-label="下个月">→</a></div><div class="calendar-grid">{''.join(cells)}</div><p class="calendar-note">点击日期查看当天 Todo</p></section>"""
 
 
 def user_by_id(user_id: int) -> sqlite3.Row | None:
@@ -641,38 +604,12 @@ def render_todo_update(user: sqlite3.Row, token: str, selected_date: date, messa
     return render_calendar(posts, todos, selected_date, selected_date) + render_todo_panel(user, token, selected_date, message=message)
 
 
-def homepage(user: sqlite3.Row | None = None, token: str | None = None, message: str = "", edit_todo: sqlite3.Row | None = None, selected_date: date | None = None, calendar_month: date | None = None, search: str = "", tag: str = "") -> str:
-    template = INDEX_PATH.read_text(encoding="utf-8")
-    posts = filtered_articles(search or tag, bool(user and user["role"] == "admin"))
-    todos = todos_for_user(user["id"]) if user is not None else []
-    today = datetime.now(ZoneInfo("Asia/Hong_Kong")).date()
-    selected_date = selected_date or today
-    calendar_month = (calendar_month or selected_date).replace(day=1)
-    count_label = f"01 — {len(posts):02d}" if posts else "暂无文章"
-    template = template.replace("<!-- ARTICLE_COUNT -->", count_label)
-    template = template.replace("<!-- SEARCH_QUERY -->", escape(search or tag))
-    template = template.replace("<!-- SEARCH_LABEL -->", escape(f"搜索：{search}" if search else (f"标签：{tag}" if tag else "")))
-    template = template.replace("<!-- AUTH_NAV -->", auth_nav(user, token))
-    template = template.replace("<!-- CALENDAR -->", render_calendar(posts, todos, calendar_month, selected_date))
-    template = template.replace("<!-- TODO_PANEL -->", render_todo_panel(user, token, selected_date, edit_todo, message))
-    template = re.sub(
-        r"<!-- ARTICLES_START -->.*?<!-- ARTICLES_END -->",
-        f"<!-- ARTICLES_START -->{article_cards(posts)}<!-- ARTICLES_END -->",
-        template,
-        flags=re.DOTALL,
-    )
-    return template
+def homepage(user=None, token=None, message="", edit_todo=None, selected_date=None, calendar_month=None, search="", tag=""):
+    return frontend.homepage(sys.modules[__name__], user, token, message, edit_todo, selected_date, calendar_month, search, tag)
 
 
-def public_article(post: sqlite3.Row) -> str:
-    title = escape(post["title"])
-    date = display_date(post["published_at"] or post["updated_at"])
-    cover = f'<img class="article-detail-cover" src="{escape(post["cover_image"])}" alt="{title}" fetchpriority="high">' if post["cover_image"] else ""
-    rendered_content = markdown_to_html(post["content"])
-    toc = article_toc(rendered_content)
-    return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="{escape(post['excerpt'])}"><title>{title} / Timeless日常存档</title>{FAVICON_LINK}<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css?v=23"><script>window.MathJax={{tex:{{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}},svg:{{fontCache:'global'}}}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></head>
-<body><div class="reading-progress" aria-hidden="true"><span></span></div><main class="page-shell article-page"><header class="site-header"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><div class="header-tools">{THEME_BUTTON}<a class="article-back" href="/">← 返回首页</a></div></header><article class="article-detail"><div class="article-detail-meta"><span>{escape(post['category'])}</span><time datetime="{escape(post['published_at'] or post['updated_at'])}">{date}</time></div><h1>{title}</h1><p class="article-lead">{escape(post['excerpt'])}</p>{cover}{toc}<div class="article-content">{rendered_content}</div></article><footer class="site-footer"><span>© 2026 TIMELESS日常存档</span><span>鲁ICP备2026053385号</span><span>BUILT WITH CARE &amp; TOO MUCH TOKEN</span></footer></main>{THEME_SCRIPT}<script>(()=>{{const bar=document.querySelector('.reading-progress span');let scheduled=false;const update=()=>{{const root=document.documentElement;const distance=root.scrollHeight-window.innerHeight;const progress=distance>0?Math.min(window.scrollY/distance,1):1;bar.style.transform=`scaleX(${{progress}})`;scheduled=false;}};const schedule=()=>{{if(!scheduled){{scheduled=true;requestAnimationFrame(update);}}}};update();addEventListener('scroll',schedule,{{passive:true}});addEventListener('resize',schedule);}})();</script></body></html>"""
+def public_article(post, user=None, token=None):
+    return frontend.article(sys.modules[__name__], post, user, token)
 
 
 def admin_css() -> str:
@@ -696,29 +633,12 @@ def login_page(error: str = "") -> str:
     )
 
 
-def user_login_page(error: str = "") -> str:
-    message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
-    register_prompt = '<p class="auth-switch">还没有账号？<a href="/register">注册一个</a></p>' if registration_mode() != "closed" else ""
-    return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>登录</h1><p>登录后管理你的日常待办。</p>{message}<form class="login-form" method="post" action="/login"><label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="current-password" required></label><button class="admin-button primary" type="submit">登录 →</button></form>{register_prompt}</main>''',
-        "登录",
-    )
+def user_login_page(error=""):
+    return frontend.auth(sys.modules[__name__], error=error)
 
 
-def register_page(error: str = "") -> str:
-    message = f'<p class="admin-error">{escape(error)}</p>' if error else ""
-    mode = registration_mode()
-    if mode == "closed":
-        return admin_layout(
-            f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>暂停注册</h1><p>目前没有开放新账号注册。</p>{message}<p class="auth-switch">已有账号？<a href="/login">返回登录</a></p></main>''',
-            "暂停注册",
-        )
-    invite_field = '<label>邀请码<input name="invite_code" autocomplete="off" required></label>' if mode == "invite" else ""
-    description = "输入邀请码，创建你的 Todo 账号。" if mode == "invite" else "创建一个账号，开始记录自己的 Todo。"
-    return admin_layout(
-        f'''<main class="login-shell"><a class="brand" href="/">{BRAND_MARK}<span>Timeless日常存档</span></a><h1>注册</h1><p>{description}</p>{message}<form class="login-form" method="post" action="/register">{invite_field}<label>用户名<input name="username" autocomplete="username" required maxlength="30"></label><label>密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><label>确认密码<input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required></label><button class="admin-button primary" type="submit">创建账号 →</button></form><p class="auth-switch">已经有账号？<a href="/login">返回登录</a></p></main>''',
-        "注册",
-    )
+def register_page(error=""):
+    return frontend.auth(sys.modules[__name__], registering=True, error=error)
 
 
 def csrf_for(token: str) -> str:
@@ -948,6 +868,16 @@ class BlogHandler(BaseHTTPRequestHandler):
         (UPLOADS_DIR / filename).write_bytes(content)
         self.send_json({"url": f"/uploads/{filename}"}, 201)
 
+    def current_user(self):
+        token = self.session_token()
+        user_id = SESSIONS.get(token, {}).get("user_id")
+        return (user_by_id(int(user_id)) if user_id else None), token
+
+    def tool_layout(self, content, title):
+        user, token = self.current_user()
+        page = "words" if 'class="words-shell"' in content else "money"
+        return frontend.layout(sys.modules[__name__], content, title, page, user, token)
+
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
         if path == "/money.js":
@@ -972,9 +902,9 @@ class BlogHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(content)
                     else:
-                        self.send_html(admin_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), query, query.get("message", [""])[0]), "个人账本"))
+                        self.send_html(self.tool_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), query, query.get("message", [""])[0]), "个人账本"))
             except ValueError as error:
-                self.send_html(admin_layout(f'<main class="money-shell"><p>{escape(error)}</p><a href="/money">返回账本</a></main>', "账本"), 400)
+                self.send_html(self.tool_layout(f'<main id="main" class="ledger-main"><p>{escape(error)}</p><a href="/money">返回账本</a></main>', "账本"), 400)
             return
         if path == "/words.js":
             self.send_file(BASE_DIR / "words.js", "text/javascript; charset=utf-8")
@@ -983,7 +913,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             token = self.require_user()
             if path == "/words":
                 user = user_by_id(int(SESSIONS[token]["user_id"])) if token else None
-                self.send_html(admin_layout(word_learning.page(escape(csrf_for(token)) if token else "", bool(token), user["username"] if user else ""), "六级单词学习"))
+                self.send_html(self.tool_layout(word_learning.page(escape(csrf_for(token)) if token else "", bool(token), user["username"] if user else ""), "六级单词学习"))
                 return
             if not WORDS_DB_PATH.exists():
                 self.send_json({"error": "词库尚未就绪"}, 503)
@@ -1015,7 +945,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             self.send_html(homepage(user, token, query.get("message", [""])[0], selected_date=selected_date, calendar_month=calendar_month, search=query.get("q", [""])[0], tag=query.get("tag", [""])[0]))
             return
         if path == "/archive":
-            self.send_html(archive_page())
+            self.send_html(archive_page(*self.current_user()))
             return
         if path == "/search":
             query = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
@@ -1089,6 +1019,13 @@ class BlogHandler(BaseHTTPRequestHandler):
             todos = todos_for_user(user["id"]) if user is not None else []
             self.send_html(render_calendar(posts, todos, month, selected_date) + render_todo_panel(user, token if user is not None else None, selected_date))
             return
+        if path.startswith("/assets/ui/"):
+            filename = path.removeprefix("/assets/ui/")
+            if not re.fullmatch(r"[a-z-]+\.(css|js)", filename):
+                self.send_error(404)
+                return
+            self.send_file(ASSETS_DIR / "ui" / filename, "text/css; charset=utf-8" if filename.endswith(".css") else "text/javascript; charset=utf-8")
+            return
         if path == "/styles.css":
             self.send_file(STYLES_PATH, "text/css; charset=utf-8")
             return
@@ -1157,7 +1094,7 @@ class BlogHandler(BaseHTTPRequestHandler):
             if post is None:
                 self.send_error(404)
             else:
-                self.send_html(public_article(post))
+                self.send_html(public_article(post, *self.current_user()))
             return
         self.send_error(404)
 
@@ -1190,7 +1127,7 @@ class BlogHandler(BaseHTTPRequestHandler):
                 self.redirect("/money?" + "month=" + quote(month) + "&message=" + quote("记录已保存" if path.endswith("save") else "记录已删除"))
             except ValueError as error:
                 with db_connection() as connection:
-                    self.send_html(admin_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), {}, str(error), form if path.endswith("save") else None), "个人账本"), 400)
+                    self.send_html(self.tool_layout(money.page(connection, user_id, user_by_id(user_id)["username"], escape(csrf_for(token)), {}, str(error), form if path.endswith("save") else None), "个人账本"), 400)
             return
         if path == "/words/api/review":
             token = self.require_user()

@@ -1,0 +1,68 @@
+  <main id="archive-main">
+    <section class="page-hero page-hero--compact" aria-labelledby="archive-title">
+      <div class="page-hero-inner">
+        <nav class="breadcrumb" aria-label="面包屑">
+          <a href="/">首页</a><span>/</span><span>归档</span>
+        </nav>
+        <p class="eyebrow">ARCHIVE / <span data-total-padded>08</span> ENTRIES</p>
+        <h1 id="archive-title">文章归档</h1>
+        <p class="page-lede">按时间整理写下的内容。有长文，也有只值得记一句的下午。</p>
+        <div class="page-meta">
+          <span>2026</span>
+          <span><strong data-total-count>08</strong> 篇</span>
+          <span><strong data-total-minutes>46</strong> 分钟</span>
+          <span><strong data-category-count>05</strong> 个分类</span>
+        </div>
+      </div>
+      <div class="hero-scroll" aria-hidden="true">SCROLL TO INDEX <span>↓</span></div>
+    </section>
+
+    <div class="archive-layout">
+      <div class="archive-content">
+        <div class="archive-topline">
+          <span>ALL ENTRIES / CHRONOLOGICAL</span>
+          <strong data-result-label aria-live="polite">08 / 08</strong>
+        </div>
+        <div data-timeline><!-- TIMELINE --></div>
+        <div class="archive-empty" data-empty hidden>
+          <span class="empty-mark" aria-hidden="true">∅</span>
+          没有符合条件的记录。
+          <br><button type="button" data-reset>清除筛选，看看全部</button>
+        </div>
+      </div>
+
+      <aside class="archive-side" id="search" aria-label="归档筛选">
+        <div class="side-group">
+          <p class="side-label">SEARCH</p>
+          <form class="archive-search" data-search-form role="search">
+            <label class="sr-only" for="archiveSearch">搜索归档</label>
+            <input id="archiveSearch" type="search" placeholder="标题、摘要或标签…" autocomplete="off" data-search>
+            <button type="submit" aria-label="搜索">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+            </button>
+          </form>
+          <p class="archive-tip"><kbd>/</kbd> 聚焦搜索 · <button class="archive-reset" type="button" data-reset>清除筛选</button></p>
+        </div>
+
+        <div class="side-group">
+          <p class="side-label">CATEGORY</p>
+          <div class="chips" data-category-chips></div>
+        </div>
+
+        <div class="side-group">
+          <p class="side-label">YEAR</p>
+          <div class="chips" data-year-chips></div>
+        </div>
+
+        <div class="side-group">
+          <p class="side-label">TAGS</p>
+          <div class="chips" data-tag-chips></div>
+        </div>
+
+        <div class="side-group">
+          <p class="side-label">NOTE</p>
+          <p class="archive-tip">归档只记录已经发布的内容。草稿和私密文章不会出现在这里。<br><br>点击文章即可阅读完整正文。</p>
+        </div>
+      </aside>
+    </div>
+  </main>
