@@ -357,7 +357,7 @@ kbd {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background-image: url("/assets/background.jpg");
+  background-image: url("/assets/ui/background.webp");
   background-size: cover;
   background-position: center 44%;
   filter: saturate(.94) contrast(1.03) brightness(.94);

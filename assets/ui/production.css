@@ -1,4 +1,15 @@
 /* Production bindings and styles for account-backed content. */
+/* Avoid live backdrop sampling while content scrolls underneath fixed UI. */
+.site-head.is-stuck, .demo-home .site-head.is-stuck {
+  background: var(--bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme="light"] .site-head.is-stuck,
+:root[data-theme="light"] .demo-home .site-head.is-stuck { background: var(--bg); }
+.hero-aside { background: rgba(5,8,6,.88); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.hero-media { filter: none; transform: none; }
+.search-dialog::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .auth-nav { display: flex; gap: 12px; align-items: center; font-size: 13px; }
 .auth-nav form { margin: 0; }
 .auth-nav button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 8px 0; }

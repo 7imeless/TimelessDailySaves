@@ -27,7 +27,7 @@ a.search-trigger { text-decoration: none; }
   overflow: hidden;
   isolation: isolate;
   padding: calc(var(--head-h) + 52px) var(--pad) 52px;
-  background: #060806 url("/assets/background.jpg") center 43% / cover no-repeat;
+  background: #060806 url("/assets/ui/background.webp") center 43% / cover no-repeat;
 }
 
 .page-hero::before {

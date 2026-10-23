@@ -1021,10 +1021,10 @@ class BlogHandler(BaseHTTPRequestHandler):
             return
         if path.startswith("/assets/ui/"):
             filename = path.removeprefix("/assets/ui/")
-            if not re.fullmatch(r"[a-z-]+\.(css|js)", filename):
+            if not re.fullmatch(r"[a-z-]+\.(css|js|webp)", filename):
                 self.send_error(404)
                 return
-            self.send_file(ASSETS_DIR / "ui" / filename, "text/css; charset=utf-8" if filename.endswith(".css") else "text/javascript; charset=utf-8")
+            self.send_file(ASSETS_DIR / "ui" / filename, {"css": "text/css; charset=utf-8", "js": "text/javascript; charset=utf-8", "webp": "image/webp"}[filename.rsplit(".", 1)[1]])
             return
         if path == "/styles.css":
             self.send_file(STYLES_PATH, "text/css; charset=utf-8")

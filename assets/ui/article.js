@@ -7,12 +7,16 @@
   const headings = Array.from(document.querySelectorAll('.prose h2[id]'));
   const tocLinks = Array.from(document.querySelectorAll('[data-toc] a, .toc-mobile a'));
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let previousActiveId;
+  let previousPercent = -1;
 
   const setActiveToc = () => {
     let activeId = headings.length ? headings[0].id : '';
     headings.forEach((heading) => {
       if (heading.getBoundingClientRect().top <= 150) activeId = heading.id;
     });
+    if (activeId === previousActiveId) return;
+    previousActiveId = activeId;
     tocLinks.forEach((link) => {
       link.classList.toggle('is-active', link.getAttribute('href') === `#${activeId}`);
     });
@@ -23,10 +27,15 @@
     const doc = document.documentElement;
     const distance = doc.scrollHeight - window.innerHeight;
     const progress = distance > 0 ? Math.min(Math.max(window.scrollY / distance, 0), 1) : 1;
-    if (bar) bar.style.transform = `scaleX(${progress})`;
-    if (ring) ring.style.setProperty('--p', `${(progress * 100).toFixed(1)}%`);
-    if (label) label.textContent = `${Math.round(progress * 100)}%`;
+    // Read heading positions before writing progress styles, avoiding forced layout.
     setActiveToc();
+    if (bar) bar.style.transform = `scaleX(${progress})`;
+    const percent = Math.round(progress * 100);
+    if (percent !== previousPercent) {
+      if (ring) ring.style.setProperty('--p', `${percent}%`);
+      if (label) label.textContent = `${percent}%`;
+      previousPercent = percent;
+    }
     ticking = false;
   };
 

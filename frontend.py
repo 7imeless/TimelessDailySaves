@@ -9,7 +9,7 @@ from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
-VERSION = '20261023'
+VERSION = '20261023-scroll'
 
 
 def template(name):

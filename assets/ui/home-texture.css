@@ -8,12 +8,12 @@ body.demo-home::before {
   content: "";
   position: fixed;
   z-index: -1;
-  inset: -8%;
+  inset: 0;
   background:
     linear-gradient(180deg, rgba(7, 9, 8, .76), rgba(7, 9, 8, .81)),
-    url("/assets/background.jpg") center 42% / cover no-repeat;
-  filter: blur(2px) saturate(1.02) brightness(.9);
-  transform: scale(1.015);
+    url("/assets/ui/texture-dark.webp") center 42% / cover no-repeat;
+  /* Blur and colour grading are baked into the small image. */
+  transform: translateZ(0);
   pointer-events: none;
 }
 
@@ -35,8 +35,8 @@ body.demo-home::before {
 [data-theme="light"] body.demo-home::before {
   background:
     linear-gradient(rgba(242, 238, 227, .86), rgba(242, 238, 227, .82)),
-    url("/assets/background.jpg") center 42% / cover no-repeat;
-  filter: blur(7px) saturate(.78) brightness(1.02);
+    url("/assets/ui/texture-light.webp") center 42% / cover no-repeat;
+
 }
 
 [data-theme="light"] .demo-home .feature {
